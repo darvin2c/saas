@@ -24,4 +24,4 @@ class User(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
     
     # Relationships
-    user_tenant_roles = relationship("UserTenantRole", back_populates="user", cascade="all, delete-orphan")
+    user_tenant_roles = relationship("UserTenantRole", back_populates="user", foreign_keys="[UserTenantRole.user_id]", cascade="all, delete-orphan")
