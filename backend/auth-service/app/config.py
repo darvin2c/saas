@@ -22,8 +22,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "Auth Service"
     DEBUG: bool = False
     
-    class Config:
-        env_file = ".env"
+    model_config = {
+        "env_file": ".env"
+    }
 
 
 def get_settings() -> Settings:
