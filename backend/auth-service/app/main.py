@@ -1,17 +1,38 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.config import settings
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.api import auth, users, tenants, roles, permissions
 from app.services.permission_service import PermissionService
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan events for the application."""
+    # Startup event: Initialize default permissions
+    db = SessionLocal()
+    try:
+        # Create default permissions
+        PermissionService.create_default_permissions(db)
+        print("Default permissions initialized")
+    except Exception as e:
+        print(f"Error initializing default permissions: {e}")
+    finally:
+        db.close()
+    
+    yield  # This is where the application runs
+    
+    # Shutdown event: Clean up resources if needed
+    # This code will be executed when the application is shutting down
 
 app = FastAPI(
     title=settings.APP_NAME,
     description="Multi-tenant Authentication Service with Dynamic Roles",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # CORS middleware
@@ -47,19 +68,7 @@ def health_check():
     return {"status": "healthy"}
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize default permissions on startup."""
-    from app.database import SessionLocal
-    db = SessionLocal()
-    try:
-        # Create default permissions
-        PermissionService.create_default_permissions(db)
-        print("Default permissions initialized")
-    except Exception as e:
-        print(f"Error initializing default permissions: {e}")
-    finally:
-        db.close()
+# El evento de inicio ahora se maneja en la función lifespan
 
 
 if __name__ == "__main__":
