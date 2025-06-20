@@ -7,7 +7,7 @@ $env:PYTHONPATH = "c:\projects\saas\backend\auth-service"
 if ($args.Count -gt 0) {
     $testFile = $args[0]
     # Ejecutar el test específico
-    .\.venv\Scripts\python -m pytest "tests\$testFile" -v
+    .\.venv\Scripts\python -m pytest $testFile -v
 }
 else {
     # Ejecutar todos los tests
