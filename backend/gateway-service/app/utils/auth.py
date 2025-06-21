@@ -1,7 +1,7 @@
 from fastapi import Request, HTTPException, status
 from jose import jwt, JWTError
 from app.config.settings import settings
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any
 import logging
 
 # Configurar logging
@@ -68,51 +68,3 @@ async def verify_token(request: Request) -> Dict[str, Any]:
             detail="Error de autenticación",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-
-async def check_permissions(request: Request, required_permissions: Optional[List[str]] = None) -> bool:
-    """
-    Verifica si el usuario tiene los permisos requeridos.
-    
-    Args:
-        request: La solicitud entrante
-        required_permissions: Lista de permisos requeridos
-        
-    Returns:
-        True si el usuario tiene los permisos requeridos, False en caso contrario
-    """
-    if not required_permissions:
-        return True
-    
-    try:
-        # Obtener el payload del token
-        payload = await verify_token(request)
-        
-        # Extraer permisos del token
-        user_permissions = payload.get("permissions", [])
-        tenant_id = payload.get("tenant_id")
-        user_id = payload.get("user_id")
-        
-        # Registrar información para depuración
-        logger.debug(
-            f"Verificando permisos para usuario {user_id} en tenant {tenant_id}. "
-            f"Permisos requeridos: {required_permissions}, "
-            f"Permisos del usuario: {user_permissions}"
-        )
-        
-        # Verificar si el usuario tiene todos los permisos requeridos
-        has_permissions = all(perm in user_permissions for perm in required_permissions)
-        
-        if not has_permissions:
-            logger.warning(
-                f"Acceso denegado para usuario {user_id} en tenant {tenant_id}. "
-                f"Faltan permisos: {[p for p in required_permissions if p not in user_permissions]}"
-            )
-        
-        return has_permissions
-    except HTTPException as e:
-        logger.warning(f"Error de autenticación al verificar permisos: {e.detail}")
-        return False
-    except Exception as e:
-        logger.error(f"Error inesperado al verificar permisos: {str(e)}")
-        return False

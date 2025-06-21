@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic import BaseModel
 from typing import List, Dict, Any
 import os
 from dotenv import load_dotenv
@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class Settings(BaseSettings):
+class Settings(BaseModel):
     """
-    Configuración de la aplicación utilizando Pydantic BaseSettings.
+    Configuración de la aplicación utilizando Pydantic.
     Las variables de entorno tienen prioridad sobre los valores predeterminados.
     """
     # Configuración general de la aplicación
@@ -35,22 +35,13 @@ class Settings(BaseSettings):
                 "reset-password",
                 "verify-email",
                 "health"
-            ],
-            "permissions": {
-                "users": ["admin"],
-                "roles": ["admin"]
-            }
+            ]
         },
         "dentist": {
             "url": os.getenv("DENTIST_SERVICE_URL", "http://localhost:8002"),
             "public_paths": [
                 "health"
-            ],
-            "permissions": {
-                "patients": ["dentist", "admin"],
-                "appointments": ["dentist", "admin"],
-                "treatments": ["dentist", "admin"]
-            }
+            ]
         }
     }
 

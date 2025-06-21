@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, status
 from app.config.settings import settings
 from app.utils.proxy import forward_request_to_service
-from app.utils.auth import verify_token, check_permissions
+from app.utils.auth import verify_token
 import logging
 
 # Configurar logging
@@ -9,6 +9,29 @@ logger = logging.getLogger("gateway-service")
 
 # Crear un router para todos los servicios
 router = APIRouter()
+
+
+def is_public_path(path: str, public_paths: list) -> bool:
+    """
+    Verifica si una ruta es pública comparando con los prefijos de rutas públicas.
+    
+    Args:
+        path: La ruta a verificar
+        public_paths: Lista de prefijos de rutas públicas
+        
+    Returns:
+        True si la ruta es pública, False en caso contrario
+    """
+    # Primero verificar coincidencia exacta
+    if path in public_paths:
+        return True
+    
+    # Luego verificar si la ruta comienza con alguno de los prefijos públicos
+    for public_path in public_paths:
+        if path.startswith(public_path + '/'):
+            return True
+    
+    return False
 
 
 @router.api_route("/{service}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
@@ -35,23 +58,13 @@ async def service_proxy(service: str, path: str, request: Request):
     service_config = settings.SERVICES[service]
     service_url = service_config["url"]
     public_paths = service_config["public_paths"]
-    permissions = service_config["permissions"]
     
-    # Verificar si la ruta requiere autenticación
-    if path not in public_paths:
+    # Verificar si la ruta requiere autenticación usando la función mejorada
+    if not is_public_path(path, public_paths):
         try:
-            # Verificar el token para rutas protegidas
-            token_payload = await verify_token(request)
-            
-            # Verificar permisos específicos para ciertas rutas
-            for route_prefix, required_permissions in permissions.items():
-                if path.startswith(route_prefix):
-                    has_permission = await check_permissions(request, required_permissions)
-                    if not has_permission:
-                        raise HTTPException(
-                            status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Permisos insuficientes"
-                        )
+            # Solo verificar el token para rutas protegidas
+            # La autorización será responsabilidad de cada servicio
+            await verify_token(request)
         except HTTPException as e:
             raise e
     
