@@ -1,4 +1,4 @@
-# Script para ejecutar los tests del servicio de autenticación desde PowerShell
+# Script para ejecutar los tests del servicio de gateway desde PowerShell
 
 # Obtener la ruta del directorio actual donde se encuentra este script
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
