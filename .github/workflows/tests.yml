@@ -40,9 +40,9 @@ jobs:
         python-version: '3.x'
         
     - name: Install PowerShell
-      uses: actions/setup-powershell@v1
+      uses: microsoft/setup-powershell@v1
       with:
-        powershell-version: '7.x'
+        pwsh-version: '7.x'
         
     - name: Install dependencies
       run: |
