@@ -39,11 +39,6 @@ jobs:
       with:
         python-version: '3.x'
         
-    - name: Install PowerShell
-      uses: microsoft/setup-powershell@v1
-      with:
-        pwsh-version: '7.x'
-        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
