@@ -52,3 +52,5 @@ jobs:
         cd backend
         pwsh -File ./tests.ps1
       shell: bash
+      env:
+        PYTHONUNBUFFERED: 1
