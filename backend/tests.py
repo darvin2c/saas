@@ -91,9 +91,9 @@ def run_tests_for_service(service_name, test_file=None, verbose=False):
     if is_windows() and (service_path / "run_tests.ps1").exists():
         run_script = service_path / "run_tests.ps1"
         cmd_prefix = "powershell -ExecutionPolicy Bypass -File"
-    elif not is_windows() and (service_path / "run_tests.sh").exists():
-        run_script = service_path / "run_tests.sh"
-        cmd_prefix = "bash"
+    elif not is_windows() and (service_path / "run_tests.ps1").exists():
+        run_script = service_path / "run_tests.ps1"
+        cmd_prefix = "pwsh -File"
     
     if not run_script:
         print(f"Error: No se encontró un script run_tests para '{service_name}'")
@@ -154,6 +154,8 @@ def run_all_tests(verbose=False):
         if is_windows() and (service_path / "run_tests.ps1").exists():
             run_script_exists = True
         elif not is_windows() and (service_path / "run_tests.sh").exists():
+            run_script_exists = True
+        elif not is_windows() and (service_path / "run_tests.ps1").exists():
             run_script_exists = True
             
         if not run_script_exists:
