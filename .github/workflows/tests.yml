@@ -1,15 +1,15 @@
-name: SaaS Backend Tests
+name: Backend Tests
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main ]
     paths:
       - 'backend/**'
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main ]
     paths:
       - 'backend/**'
-  workflow_dispatch:  # Permite ejecutar el workflow manualmente desde la interfaz de GitHub
+  workflow_dispatch:
 
 jobs:
   test:
@@ -17,14 +17,13 @@ jobs:
     
     services:
       postgres:
-        image: postgres:14
+        image: postgres:latest
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
-          POSTGRES_DB: postgres
+          POSTGRES_DB: testdb
         ports:
           - 5432:5432
-        # Opciones de health check para asegurar que Postgres está disponible antes de ejecutar los tests
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -32,49 +31,29 @@ jobs:
           --health-retries 5
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
       
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Install PowerShell
+      uses: actions/setup-powershell@v1
+      with:
+        powershell-version: '7.x'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f backend/requirements.txt ]; then
+          pip install -r backend/requirements.txt
+        fi
+      shell: bash
       
-      - name: Install PowerShell
-        run: |
-          # Instalar PowerShell en Ubuntu
-          sudo apt-get update
-          sudo apt-get install -y wget apt-transport-https software-properties-common
-          wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
-          sudo dpkg -i packages-microsoft-prod.deb
-          sudo apt-get update
-          sudo apt-get install -y powershell
-      
-      - name: Create test database
-        run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE saas_test;"
-      
-      - name: Setup services
-        working-directory: ./backend
-        run: |
-          # Configurar todos los servicios de una vez
-          for service in auth-service gateway-service; do
-            if [ -d "$service" ]; then
-              echo "Configurando $service..."
-              cd $service
-              python -m venv .venv
-              source .venv/bin/activate
-              pip install -r requirements.txt
-              pip install pytest pytest-cov
-              cd ..
-            fi
-          done
-      
-      - name: Run all tests
-        working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saas_test
-        run: |
-          # Ejecutar el script centralizado de tests usando PowerShell
-          pwsh -File ./tests.ps1
+    - name: Run tests
+      run: |
+        cd backend
+        pwsh -File ./tests.ps1
+      shell: bash
