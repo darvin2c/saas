@@ -9,6 +9,7 @@ import sys
 import subprocess
 import argparse
 import platform
+import importlib.util
 from pathlib import Path
 import time
 
@@ -145,6 +146,32 @@ def run_all_tests(verbose=False):
     
     return all_success
 
+def setup_test_database():
+    """Configura la base de datos de pruebas antes de ejecutar los tests."""
+    print("\n" + "="*80)
+    print("CONFIGURANDO BASE DE DATOS DE PRUEBAS")
+    print("="*80)
+    
+    # Verificar si el módulo setup_test_db existe
+    setup_db_path = BASE_DIR / "setup_test_db.py"
+    if not setup_db_path.exists():
+        print("Advertencia: No se encontró el script setup_test_db.py. Omitiendo configuración de base de datos.")
+        return True
+    
+    # Importar y ejecutar el módulo setup_test_db dinámicamente
+    try:
+        # Cargar el módulo dinámicamente
+        spec = importlib.util.spec_from_file_location("setup_test_db", setup_db_path)
+        setup_test_db = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(setup_test_db)
+        
+        # Ejecutar la función principal del módulo
+        result = setup_test_db.main()
+        return result == 0
+    except Exception as e:
+        print(f"Error al configurar la base de datos de pruebas: {str(e)}")
+        return False
+
 def main():
     """Función principal que procesa los argumentos y ejecuta los tests."""
     parser = argparse.ArgumentParser(description="Script centralizado para ejecutar tests de microservicios SaaS")
@@ -152,6 +179,7 @@ def main():
     parser.add_argument("--file", help="Archivo de test específico a ejecutar (opcional)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Modo verbose")
     parser.add_argument("--list", action="store_true", help="Listar servicios disponibles")
+    parser.add_argument("--skip-db-setup", action="store_true", help="Omitir la configuración de la base de datos")
     
     args = parser.parse_args()
     
@@ -160,6 +188,12 @@ def main():
         for name in SERVICES:
             print(f"  - {name}")
         return 0
+    
+    # Configurar la base de datos a menos que se especifique lo contrario
+    if not args.skip_db_setup:
+        if not setup_test_database():
+            print("Error en la configuración de la base de datos. Abortando tests.")
+            return 1
     
     if args.service:
         if args.service not in SERVICES:

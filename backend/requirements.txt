@@ -1,10 +1,12 @@
-fastapi>=0.95.0
-uvicorn>=0.21.1
-alembic>=1.10.2
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
-python-multipart>=0.0.6
-pydantic[email]>=1.10.7
-python-dotenv>=1.0.0
-psycopg2-binary>=2.9.6
-tenacity>=8.2.2
+# Dependencias esenciales para los scripts del backend
+
+# Para conexión y gestión de base de datos
+psycopg2-binary>=2.9.6    # Necesario para setup_test_db.py
+
+# Para ejecutar los servicios (usado en dev.py)
+python-dotenv>=1.0.0     # Para cargar variables de entorno
+
+# Dependencias opcionales para desarrollo
+# Estas dependencias no son necesarias para los scripts de gestión,
+# pero pueden ser útiles para desarrollo y debugging
+pytest>=7.0.0            # Para ejecutar tests (usado en test.py)
