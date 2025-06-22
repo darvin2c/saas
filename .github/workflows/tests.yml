@@ -45,12 +45,15 @@ jobs:
         if [ -f backend/requirements.txt ]; then
           pip install -r backend/requirements.txt
         fi
+        # Instalar dependencias necesarias para los tests
+        pip install fastapi pytest pytest-asyncio httpx
       shell: bash
       
     - name: Run tests
       run: |
         cd backend
-        pwsh -File ./tests.ps1
+        chmod +x ./tests.sh
+        ./tests.sh
       shell: bash
       env:
         PYTHONUNBUFFERED: 1
