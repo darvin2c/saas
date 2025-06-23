@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { $apiV1 } from "@/api/api-v1"
+import { signIn } from "next-auth/react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 const schema = z.object({
   email: z.string().email({ message: "El formato de correo electrónico es inválido" }),
@@ -16,16 +18,36 @@ const schema = z.object({
 })
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
   const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
   })
 
-  const { mutate } = $apiV1.useMutation("post", "/auth/login")
-
-   const onSubmit = (data: z.infer<typeof schema>) => {
-    mutate({
-      body: data,
-    })
+  const onSubmit = async (data: z.infer<typeof schema>) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: data.email,
+        password: data.password,
+      });
+      
+      if (result?.error) {
+        setError('Credenciales inválidas. Por favor, inténtalo de nuevo.');
+        setIsLoading(false);
+      } else {
+        // Redirigir al usuario después de iniciar sesión exitosamente
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      setError('Ocurrió un error durante el inicio de sesión. Por favor, inténtalo de nuevo.');
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -36,10 +58,15 @@ export default function LoginPage() {
           Inicia sesión con tu correo electrónico
         </p>
       </div>
+      {error && (
+        <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
       <div className="grid gap-6">
         <div className="grid gap-3">
           <Label htmlFor="email">Correo electrónico</Label>
-          <Input id="email" type="email" placeholder="me@example.com" {...register("email")}/>
+          <Input id="email" type="email" placeholder="me@example.com" {...register("email")} disabled={isLoading}/>
           {errors.email && <p className="text-red-500">{errors.email.message}</p>}
         </div>
         <div className="grid gap-3">
@@ -52,11 +79,11 @@ export default function LoginPage() {
               ¿Olvidaste tu contraseña?
             </a>
           </div>
-          <Input id="password" type="password" {...register("password")}/>
+          <Input id="password" type="password" {...register("password")} disabled={isLoading}/>
           {errors.password && <p className="text-red-500">{errors.password.message}</p>}
         </div>
-        <Button type="submit" className="w-full">
-          Iniciar sesión
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
         </Button>
       </div>
       <div className="text-center text-sm">
