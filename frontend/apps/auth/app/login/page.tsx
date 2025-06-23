@@ -23,7 +23,9 @@ export default function LoginPage() {
   const { mutate } = $apiV1.useMutation("post", "/auth/login")
 
    const onSubmit = (data: z.infer<typeof schema>) => {
-    console.log(data)
+    mutate({
+      body: data,
+    })
   }
 
   return (

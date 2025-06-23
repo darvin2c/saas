@@ -810,8 +810,6 @@ export interface components {
             email: string;
             /** Password */
             password: string;
-            /** Tenant Domain */
-            tenant_domain: string;
         };
         /** UserRegister */
         UserRegister: {
