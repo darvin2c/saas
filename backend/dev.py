@@ -19,17 +19,17 @@ SERVICES = {
     "auth-service": {
         "path": BASE_DIR / "auth-service",
         "port": 8001,
-        "command": "uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload"
+        "command": "uvicorn app.main:app --host localhost --port 8001 --reload"
     },
     "gateway-service": {
         "path": BASE_DIR / "gateway-service",
         "port": 8000,
-        "command": "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+        "command": "uvicorn app.main:app --host localhost --port 8000 --reload"
     },
     "dentist-service": {
         "path": BASE_DIR / "dentist-service",
         "port": 8002,
-        "command": "uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload"
+        "command": "uvicorn app.main:app --host localhost --port 8002 --reload"
     }
 }
 
