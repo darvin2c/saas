@@ -6,7 +6,6 @@ from uuid import UUID
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-    tenant_domain: str
 
 
 class UserRegister(BaseModel):

@@ -269,8 +269,7 @@ class TestAuthService:
         # Arrange
         login_data = UserLogin(
             email=test_user.email,
-            password="password123",
-            tenant_domain=test_tenant.domain
+            password="password123"
         )
         
         # Act
@@ -292,8 +291,7 @@ class TestAuthService:
         # Arrange
         login_data = UserLogin(
             email=test_user.email,
-            password="wrongpassword",
-            tenant_domain=test_tenant.domain
+            password="wrongpassword"
         )
         
         # Act
@@ -302,12 +300,28 @@ class TestAuthService:
         # Assert
         assert result is None
     
-    def test_authenticate_user_nonexistent_tenant(self, db_session, test_user):
-        # Arrange
+    def test_authenticate_user_no_tenant_assigned(self, db_session):
+        # Arrange - Create a user without any tenant assigned
+        user = User(
+            id=uuid.uuid4(),
+            email=fake.email(),
+            hashed_password=get_password_hash("password123"),
+            first_name=fake.first_name(),
+            last_name=fake.last_name(),
+            is_active=True,
+            is_verified=True,
+            verification_token=str(uuid.uuid4()),
+            reset_password_token=None,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            last_login=None
+        )
+        db_session.add(user)
+        db_session.commit()
+        
         login_data = UserLogin(
-            email=test_user.email,
-            password="password123",
-            tenant_domain=f"nonexistent-{uuid.uuid4().hex[:8]}.com"
+            email=user.email,
+            password="password123"
         )
         
         # Act
@@ -316,34 +330,53 @@ class TestAuthService:
         # Assert
         assert result is None
     
-    def test_authenticate_user_inactive_tenant(self, db_session, test_user, inactive_tenant):
-        # Arrange
+    def test_authenticate_user_multiple_tenants(self, db_session, test_user, test_tenant, test_role):
+        # Arrange - Create a second active tenant and assign user to both
+        second_tenant = Tenant(
+            id=uuid.uuid4(),
+            name=fake.company(),
+            domain=f"second-{uuid.uuid4().hex[:8]}.com",
+            is_active=True,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        db_session.add(second_tenant)
+        db_session.commit()
+        
+        # Assign user to first tenant
+        first_user_tenant_role = UserTenantRole(
+            id=uuid.uuid4(),
+            user_id=test_user.id,
+            tenant_id=test_tenant.id,
+            role_id=test_role.id,
+            assigned_at=datetime.utcnow()
+        )
+        db_session.add(first_user_tenant_role)
+        
+        # Assign user to second tenant
+        second_user_tenant_role = UserTenantRole(
+            id=uuid.uuid4(),
+            user_id=test_user.id,
+            tenant_id=second_tenant.id,
+            role_id=test_role.id,
+            assigned_at=datetime.utcnow()
+        )
+        db_session.add(second_user_tenant_role)
+        db_session.commit()
+        
         login_data = UserLogin(
             email=test_user.email,
-            password="password123",
-            tenant_domain=inactive_tenant.domain
+            password="password123"
         )
         
         # Act
         result = AuthService.authenticate_user(db_session, login_data)
         
         # Assert
-        assert result is None
-    
-    def test_authenticate_user_no_tenant_access(self, db_session, test_user, test_tenant):
-        # Arrange - user exists but doesn't have access to tenant
-        # (no user_tenant_role fixture used here)
-        login_data = UserLogin(
-            email=test_user.email,
-            password="password123",
-            tenant_domain=test_tenant.domain
-        )
-        
-        # Act
-        result = AuthService.authenticate_user(db_session, login_data)
-        
-        # Assert
-        assert result is None
+        assert result is not None
+        assert result["user"].id == test_user.id
+        # Should return the first tenant found (test_tenant in this case)
+        assert result["tenant"].id == test_tenant.id
     
     def test_create_user_tokens(self, db_session, test_user, test_tenant):
         # Arrange

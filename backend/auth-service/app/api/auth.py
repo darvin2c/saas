@@ -37,7 +37,7 @@ def login_user(
     if not auth_result:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email, password, or tenant domain"
+            detail="Incorrect email or password"
         )
     
     user = auth_result["user"]

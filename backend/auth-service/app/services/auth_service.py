@@ -53,11 +53,6 @@ class AuthService:
     @staticmethod
     def authenticate_user(db: Session, login_data: UserLogin) -> Optional[Dict[str, Any]]:
         """Authenticate user and return user info with tenant context."""
-        # Get tenant
-        tenant = TenantService.get_tenant_by_domain(db, login_data.tenant_domain)
-        if not tenant or not tenant.is_active:
-            return None
-        
         # Get user
         user = UserService.get_user_by_email(db, login_data.email)
         if not user or not user.is_active:
@@ -67,19 +62,29 @@ class AuthService:
         if not verify_password(login_data.password, user.hashed_password):
             return None
         
-        # Check if user belongs to the tenant
-        user_tenant_role = UserService.get_user_tenant_role(db, user.id, tenant.id)
-        if not user_tenant_role:
+        # Get user's primary tenant (first active tenant)
+        user_tenant_roles = db.query(UserTenantRole).filter(
+            UserTenantRole.user_id == user.id
+        ).all()
+        
+        if not user_tenant_roles:
             return None
         
-        # Update last login
-        UserService.update_last_login(db, user.id)
+        # Find first active tenant
+        for user_tenant_role in user_tenant_roles:
+            tenant = TenantService.get_tenant(db, user_tenant_role.tenant_id)
+            if tenant and tenant.is_active:
+                # Update last login
+                UserService.update_last_login(db, user.id)
+                
+                return {
+                    "user": user,
+                    "tenant": tenant,
+                    "role_info": user_tenant_role
+                }
         
-        return {
-            "user": user,
-            "tenant": tenant,
-            "role_info": user_tenant_role
-        }
+        # No active tenant found
+        return None
     
     @staticmethod
     def create_user_tokens(user_id: UUID, tenant_id: UUID, permissions: list[str]) -> Token:
