@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "openapi": "openapi-typescript ./openapi.json --output ./types/openapi.d.ts"
+    "openapi": "openapi-typescript ./openapi.json --output ./api/types/v1.d.ts"
   },
   "dependencies": {
     "next": "15.3.4",
