@@ -1,6 +1,6 @@
 # este archivo es necesario para el despliegue en Vercel
 
 
-from app.main import app 
+from app.main import app as gateway_app
 
-index = app
+app = gateway_app
