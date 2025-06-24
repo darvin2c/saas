@@ -40,18 +40,25 @@ def mock_request():
 @pytest.fixture
 def mock_settings(monkeypatch):
     """Fixture para simular la configuración de servicios."""
-    mock_services = {
-        "auth": {
-            "url": "http://localhost:8001",
-            "public_paths": ["login", "register", "health"]
-        },
-        "dentist": {
-            "url": "http://localhost:8002",
-            "public_paths": ["health"]
-        }
-    }
-    monkeypatch.setattr(settings, "SERVICES", mock_services)
-    return settings
+    # Crear una clase MockSettings que simule el comportamiento de Settings
+    class MockSettings:
+        @property
+        def SERVICES(self):
+            return {
+                "auth": {
+                    "url": "http://localhost:8001",
+                    "public_paths": ["login", "register", "health"]
+                },
+                "dentist": {
+                    "url": "http://localhost:8002",
+                    "public_paths": ["health"]
+                }
+            }
+    
+    # Reemplazar el objeto settings con nuestra versión simulada
+    mock_settings_obj = MockSettings()
+    monkeypatch.setattr("app.api.router.settings", mock_settings_obj)
+    return mock_settings_obj
 
 
 class TestServiceProxy:

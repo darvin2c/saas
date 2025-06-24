@@ -6,3 +6,4 @@ python-jose>=3.3.0
 pyjwt>=2.6.0
 httpx>=0.24.0
 alembic>=1.10.0
+pydantic-settings>=2.0.0

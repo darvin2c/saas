@@ -7,13 +7,36 @@ $servicePath = $scriptPath
 # Configurar el entorno usando rutas relativas
 $env:PYTHONPATH = $servicePath
 
-# Determinar la ruta al ejecutable de Python según el sistema operativo
-if ($IsWindows -or $env:OS -like "*Windows*") {
-    $pythonPath = Join-Path -Path $servicePath -ChildPath ".venv\Scripts\python"
-} else {
-    # En Linux/macOS
-    $pythonPath = Join-Path -Path $servicePath -ChildPath ".venv/bin/python"
+# Verificar si existe el entorno virtual, si no, crearlo
+if (-not (Test-Path -Path "$servicePath\.venv")) {
+    Write-Host "Creando entorno virtual en $servicePath\.venv..."
+    python -m venv "$servicePath\.venv"
+    
+    if (-not $?) {
+        Write-Error "ERROR: No se pudo crear el entorno virtual. Asegúrese de tener instalado Python 3.8+ y el módulo venv."
+        exit 1
+    }
+    Write-Host "Entorno virtual creado correctamente."
 }
+
+# Determinar la ruta al ejecutable de Python
+if (Test-Path -Path "$servicePath\.venv\Scripts\python.exe") {
+    $pythonPath = "$servicePath\.venv\Scripts\python.exe"
+} else {
+    Write-Error "ERROR: No se encontró el ejecutable de Python en el entorno virtual."
+    exit 1
+}
+
+# Verificar si existe requirements.txt
+if (-not (Test-Path -Path "$servicePath\requirements.txt")) {
+    Write-Error "ERROR: No se encontró el archivo requirements.txt en $servicePath"
+    Write-Error "Por favor, cree un archivo requirements.txt con las dependencias necesarias para los tests"
+    exit 1
+}
+
+# Instalar dependencias desde requirements.txt
+Write-Host "Instalando dependencias desde requirements.txt..."
+& $pythonPath -m pip install -r "$servicePath\requirements.txt"
 
 # Verificar si se proporcionó un archivo de test específico
 if ($args.Count -gt 0) {

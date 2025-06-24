@@ -8,12 +8,24 @@ SERVICE_PATH="$SCRIPT_PATH"
 # Configurar el entorno usando rutas relativas
 export PYTHONPATH="$SERVICE_PATH"
 
+# Verificar si existe el entorno virtual, si no, crearlo
+if [ ! -d "$SERVICE_PATH/.venv" ]; then
+    echo "Creando entorno virtual en $SERVICE_PATH/.venv..."
+    python -m venv "$SERVICE_PATH/.venv"
+    
+    if [ $? -ne 0 ]; then
+        echo "ERROR: No se pudo crear el entorno virtual. Asegúrese de tener instalado Python 3.8+ y el módulo venv."
+        exit 1
+    fi
+    echo "Entorno virtual creado correctamente."
+fi
+
 # Determinar la ruta al ejecutable de Python
 if [ -f "$SERVICE_PATH/.venv/bin/python" ]; then
     PYTHON_PATH="$SERVICE_PATH/.venv/bin/python"
 else
-    # Usar el Python del sistema si no existe el entorno virtual
-    PYTHON_PATH="python"
+    echo "ERROR: No se encontró el ejecutable de Python en el entorno virtual."
+    exit 1
 fi
 
 # Verificar si existe requirements.txt
