@@ -2,3 +2,5 @@
 
 
 from app.main import app 
+
+index = app
