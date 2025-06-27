@@ -2,7 +2,8 @@ from typing import Optional, Dict, Any
 from uuid import UUID
 from sqlalchemy.orm import Session
 from app.models import User, Tenant, UserTenantRole
-from app.schemas.auth import UserLogin, UserRegister, Token, TokenData
+from app.schemas.auth import UserRegister, Token, TokenData, UserLogin
+from app.schemas.tenant import TenantCreate
 from app.services.user_service import UserService
 from app.services.tenant_service import TenantService
 from app.services.role_service import RoleService
@@ -18,9 +19,14 @@ class AuthService:
         # Check if tenant exists
         tenant = TenantService.get_tenant_by_domain(db, user_data.tenant_domain)
         if not tenant:
-            raise ValueError("Tenant not found")
-        
-        if not tenant.is_active:
+            # Create new tenant with provided name and domain
+            tenant_data = TenantCreate(
+                name=user_data.tenant_name,
+                domain=user_data.tenant_domain,
+                description=f"Tenant created during registration by {user_data.email}"
+            )
+            tenant = TenantService.create_tenant(db, tenant_data)
+        elif not tenant.is_active:
             raise ValueError("Tenant is not active")
         
         # Check if user already exists

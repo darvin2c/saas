@@ -14,6 +14,7 @@ class UserRegister(BaseModel):
     first_name: str
     last_name: str
     tenant_domain: str
+    tenant_name: str
 
 
 class Token(BaseModel):

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from faker import Faker
 from app.services.auth_service import AuthService
 from app.models import User, Tenant, UserTenantRole, Role
-from app.schemas.auth import UserLogin, UserRegister, TokenData
+from app.schemas.auth import UserRegister, UserLogin, TokenData
 from app.utils.auth import get_password_hash
 
 # Inicializar Faker
@@ -132,7 +132,8 @@ class TestAuthService:
             password=fake.password(length=12),
             first_name=fake.first_name(),
             last_name=fake.last_name(),
-            tenant_domain=test_tenant.domain
+            tenant_domain=test_tenant.domain,
+            tenant_name=test_tenant.name
         )
         
         # Act
@@ -174,17 +175,28 @@ class TestAuthService:
     @pytest.mark.asyncio
     async def test_register_user_tenant_not_found(self, db_session):
         # Arrange
+        tenant_domain = f"nonexistent-{uuid.uuid4().hex[:8]}.com"
+        tenant_name = "New Test Tenant"
         user_data = UserRegister(
             email=fake.email(),
             password=fake.password(length=12),
             first_name=fake.first_name(),
             last_name=fake.last_name(),
-            tenant_domain=f"nonexistent-{uuid.uuid4().hex[:8]}.com"
+            tenant_domain=tenant_domain,
+            tenant_name=tenant_name
         )
         
-        # Act & Assert
-        with pytest.raises(ValueError, match="Tenant not found"):
-            await AuthService.register_user(db_session, user_data)
+        # Act
+        result = await AuthService.register_user(db_session, user_data)
+        
+        # Assert
+        assert "user_id" in result
+        assert result["message"] == "User registered successfully. Please check your email for verification."
+        
+        # Verify that a new tenant was created
+        new_tenant = db_session.query(Tenant).filter(Tenant.domain == tenant_domain).first()
+        assert new_tenant is not None
+        assert new_tenant.name == tenant_name
     
     @pytest.mark.asyncio
     async def test_register_user_inactive_tenant(self, db_session, inactive_tenant):
@@ -194,7 +206,8 @@ class TestAuthService:
             password=fake.password(length=12),
             first_name=fake.first_name(),
             last_name=fake.last_name(),
-            tenant_domain=inactive_tenant.domain
+            tenant_domain=inactive_tenant.domain,
+            tenant_name=inactive_tenant.name
         )
         
         # Act & Assert
@@ -222,7 +235,8 @@ class TestAuthService:
             password=fake.password(length=12),
             first_name=fake.first_name(),
             last_name=fake.last_name(),
-            tenant_domain=new_tenant.domain
+            tenant_domain=new_tenant.domain,
+            tenant_name=new_tenant.name
         )
         
         # Act
@@ -258,7 +272,8 @@ class TestAuthService:
             password=fake.password(length=12),
             first_name=fake.first_name(),
             last_name=fake.last_name(),
-            tenant_domain=test_tenant.domain
+            tenant_domain=test_tenant.domain,
+            tenant_name=test_tenant.name
         )
         
         # Act & Assert
