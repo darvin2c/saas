@@ -30,7 +30,7 @@ const schema = z.object({
 export default function RegisterPage() {
   const router = useRouter();
   
-  const { register, handleSubmit, formState: { errors }, watch } = useForm<z.infer<typeof schema>>({
+  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
   })
 
@@ -45,9 +45,9 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (tenantName) {
-      register('tenant_domain', {
-        value: tenantName.toLowerCase().replace(/\s/g, '-'),
-      })
+      const domain = tenantName.toLowerCase().replace(/\s/g, '-')
+      console.log(domain)
+      setValue('tenant_domain', domain)
     }
   }, [tenantName])
 
