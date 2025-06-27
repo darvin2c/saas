@@ -826,6 +826,8 @@ export interface components {
             last_name: string;
             /** Tenant Domain */
             tenant_domain: string;
+            /** Tenant Name */
+            tenant_name: string;
         };
         /** UserRoleAssignment */
         UserRoleAssignment: {
