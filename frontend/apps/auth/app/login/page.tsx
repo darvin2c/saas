@@ -9,7 +9,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { signIn } from "next-auth/react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 
 const schema = z.object({
   email: z.string().email({ message: "El formato de correo electrónico es inválido" }),
@@ -19,7 +20,10 @@ const schema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const registered = searchParams.get('registered');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(registered ? "Registro exitoso. Ahora puedes iniciar sesión." : null);
   const [isLoading, setIsLoading] = useState(false);
   
   const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
@@ -29,6 +33,7 @@ export default function LoginPage() {
   const onSubmit = async (data: z.infer<typeof schema>) => {
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
     
     try {
       const result = await signIn('credentials', {
@@ -63,6 +68,11 @@ export default function LoginPage() {
           {error}
         </div>
       )}
+      {success && (
+        <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          {success}
+        </div>
+      )}
       <div className="grid gap-6">
         <div className="grid gap-3">
           <Label htmlFor="email">Correo electrónico</Label>
@@ -82,15 +92,15 @@ export default function LoginPage() {
           <Input id="password" type="password" {...register("password")} disabled={isLoading}/>
           {errors.password && <p className="text-red-500">{errors.password.message}</p>}
         </div>
-        <SubmitButton isLoading={isLoading}>
+        <SubmitButton isPending={isLoading}>
           Iniciar sesión
         </SubmitButton>
       </div>
       <div className="text-center text-sm">
-        No tienes una cuenta?{" "}
-        <a href="#" className="underline underline-offset-4">
+        ¿No tienes una cuenta?{" "}
+        <Link href="/register" className="underline underline-offset-4">
           Regístrate
-        </a>
+        </Link>
       </div>
     </form>
   )

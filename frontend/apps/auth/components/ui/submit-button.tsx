@@ -4,19 +4,19 @@ import { Button } from "./button";
 
 export function SubmitButton(
     {
-        isLoading,
+        isPending,
         children,
     }: {
-        isLoading: boolean;
+        isPending: boolean;
         children: React.ReactNode;
     }
 ) {
     return (
         <Button
             type="submit"
-            disabled={isLoading}
+            disabled={isPending}
         >
-            {isLoading ? "Enviando..." : children}
+            {isPending ? "Enviando..." : children}
         </Button>
     )
 }
