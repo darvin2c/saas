@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { SubmitButton } from "@/components/ui/submit-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { z } from "zod"
@@ -82,9 +82,9 @@ export default function LoginPage() {
           <Input id="password" type="password" {...register("password")} disabled={isLoading}/>
           {errors.password && <p className="text-red-500">{errors.password.message}</p>}
         </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
-        </Button>
+        <SubmitButton isLoading={isLoading}>
+          Iniciar sesión
+        </SubmitButton>
       </div>
       <div className="text-center text-sm">
         No tienes una cuenta?{" "}
