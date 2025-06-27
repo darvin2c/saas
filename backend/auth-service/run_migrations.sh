@@ -55,7 +55,9 @@ COMMAND=${1:-"upgrade head"}
 
 # Ejecutar el comando de Alembic
 echo "Ejecutando: alembic $COMMAND"
-"$PYTHON_PATH" -m alembic "$COMMAND"
+# Dividir el comando en palabras para pasarlas como argumentos separados
+read -ra ALEMBIC_ARGS <<< "$COMMAND"
+"$PYTHON_PATH" -m alembic "${ALEMBIC_ARGS[@]}"
 
 # Verificar si la ejecución fue exitosa
 if [ $? -eq 0 ]; then
