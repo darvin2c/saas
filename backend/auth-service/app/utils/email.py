@@ -33,7 +33,7 @@ async def send_email(to_email: str, subject: str, html_content: str) -> bool:
 
 async def send_verification_email(email: str, token: str, tenant_domain: str) -> bool:
     """Send email verification email."""
-    verification_url = f"http://localhost:8000/auth/verify-email?token={token}&tenant={tenant_domain}"
+    verification_url = f"http://localhost:8000/verify-email?token={token}&tenant={tenant_domain}"
     
     html_content = f"""
     <html>
@@ -53,7 +53,7 @@ async def send_verification_email(email: str, token: str, tenant_domain: str) ->
 
 async def send_reset_password_email(email: str, token: str, tenant_domain: str) -> bool:
     """Send password reset email."""
-    reset_url = f"http://localhost:8000/auth/reset-password?token={token}&tenant={tenant_domain}"
+    reset_url = f"http://localhost:8000/reset-password?token={token}&tenant={tenant_domain}"
     
     html_content = f"""
     <html>

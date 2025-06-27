@@ -7,7 +7,7 @@ from app.schemas.auth import (
 )
 from app.services.auth_service import AuthService
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 
 @router.post("/register", response_model=dict)
