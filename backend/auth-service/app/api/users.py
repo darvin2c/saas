@@ -15,7 +15,7 @@ from app.api.dependencies import (
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/me", response_model=UserWithTenantRole)
+@router.get("/me", response_model=User)
 def get_current_user_info(
     current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -28,20 +28,7 @@ def get_current_user_info(
             detail="User not found"
         )
     
-    from app.services.tenant_service import TenantService
-    tenant = TenantService.get_tenant(db, current_user.tenant_id)
-    
-    user_role_info = UserService.get_user_tenant_role(db, user.id, current_user.tenant_id)
-    
-    return UserWithTenantRole(
-        **user.__dict__,
-        tenant_id=current_user.tenant_id,
-        tenant_name=tenant.name,
-        tenant_domain=tenant.domain,
-        role_id=user_role_info["role_id"],
-        role_name=user_role_info["role_name"],
-        permissions=user_role_info["permissions"]
-    )
+    return user
 
 
 @router.get("/", response_model=List[User])
