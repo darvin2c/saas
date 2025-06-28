@@ -65,8 +65,11 @@ async def service_proxy(service: str, path: str, request: Request):
             # Solo verificar el token para rutas protegidas
             # La autorización será responsabilidad de cada servicio
             await verify_token(request)
+            logger.info(f"Token verificado para la ruta {path}")
         except HTTPException as e:
             raise e
+    else:
+        logger.info(f"Ruta pública: {path}")
     
     # Reenviar la solicitud al servicio correspondiente
     return await forward_request_to_service(request, service_url)
