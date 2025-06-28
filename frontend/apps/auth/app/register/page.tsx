@@ -34,7 +34,7 @@ export default function RegisterPage() {
     resolver: zodResolver(schema),
   })
 
-  const { mutateAsync: registerUser, isPending, error } = $apiV1.useMutation('post', '/auth/register', {
+  const { mutateAsync: registerUser, isPending, error } = $apiV1.useMutation('post', '/register', {
     onSuccess: () => {
       router.push('/login')
     }

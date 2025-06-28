@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/auth/register": {
+    "/register": {
         parameters: {
             query?: never;
             header?: never;
@@ -17,14 +17,14 @@ export interface paths {
          * Register User
          * @description Register a new user.
          */
-        post: operations["register_user_auth_register_post"];
+        post: operations["register_user_register_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/login": {
+    "/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -37,14 +37,14 @@ export interface paths {
          * Login User
          * @description Login user and return JWT tokens.
          */
-        post: operations["login_user_auth_login_post"];
+        post: operations["login_user_login_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/refresh": {
+    "/refresh": {
         parameters: {
             query?: never;
             header?: never;
@@ -57,14 +57,14 @@ export interface paths {
          * Refresh Token
          * @description Refresh access token.
          */
-        post: operations["refresh_token_auth_refresh_post"];
+        post: operations["refresh_token_refresh_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/verify-email": {
+    "/verify-email": {
         parameters: {
             query?: never;
             header?: never;
@@ -77,14 +77,14 @@ export interface paths {
          * Verify Email
          * @description Verify user email with token.
          */
-        post: operations["verify_email_auth_verify_email_post"];
+        post: operations["verify_email_verify_email_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/request-password-reset": {
+    "/request-password-reset": {
         parameters: {
             query?: never;
             header?: never;
@@ -97,14 +97,14 @@ export interface paths {
          * Request Password Reset
          * @description Request password reset.
          */
-        post: operations["request_password_reset_auth_request_password_reset_post"];
+        post: operations["request_password_reset_request_password_reset_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/reset-password": {
+    "/reset-password": {
         parameters: {
             query?: never;
             header?: never;
@@ -117,7 +117,7 @@ export interface paths {
          * Reset Password
          * @description Reset password with token.
          */
-        post: operations["reset_password_auth_reset_password_post"];
+        post: operations["reset_password_reset_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -930,7 +930,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    register_user_auth_register_post: {
+    register_user_register_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -965,7 +965,7 @@ export interface operations {
             };
         };
     };
-    login_user_auth_login_post: {
+    login_user_login_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -998,7 +998,7 @@ export interface operations {
             };
         };
     };
-    refresh_token_auth_refresh_post: {
+    refresh_token_refresh_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1031,7 +1031,7 @@ export interface operations {
             };
         };
     };
-    verify_email_auth_verify_email_post: {
+    verify_email_verify_email_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1064,7 +1064,7 @@ export interface operations {
             };
         };
     };
-    request_password_reset_auth_request_password_reset_post: {
+    request_password_reset_request_password_reset_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1097,7 +1097,7 @@ export interface operations {
             };
         };
     };
-    reset_password_auth_reset_password_post: {
+    reset_password_reset_password_post: {
         parameters: {
             query?: never;
             header?: never;
