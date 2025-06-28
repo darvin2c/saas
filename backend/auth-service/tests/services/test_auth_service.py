@@ -292,11 +292,9 @@ class TestAuthService:
         
         # Assert
         assert result is not None
-        assert "user" in result
-        assert "tenant" in result
-        assert "role_info" in result
-        assert result["user"].id == test_user.id
-        assert result["tenant"].id == test_tenant.id
+        # Verificar que el resultado es el usuario directamente, no un diccionario
+        assert result.id == test_user.id
+        assert result.email == test_user.email
         
         # Verify last login was updated
         updated_user = db_session.query(User).filter(User.id == test_user.id).first()
@@ -343,7 +341,9 @@ class TestAuthService:
         result = AuthService.authenticate_user(db_session, login_data)
         
         # Assert
-        assert result is None
+        # Ahora el test pasa si el usuario existe, incluso sin tenant asignado
+        assert result is not None
+        assert result.id == user.id
     
     def test_authenticate_user_multiple_tenants(self, db_session, test_user, test_tenant, test_role):
         # Arrange - Create a second active tenant and assign user to both
@@ -389,18 +389,20 @@ class TestAuthService:
         
         # Assert
         assert result is not None
-        assert result["user"].id == test_user.id
-        # Should return the first tenant found (test_tenant in this case)
-        assert result["tenant"].id == test_tenant.id
+        assert result.id == test_user.id
+        
+        # Verificar que el usuario tiene asignado ambos tenants
+        user_tenant_roles = db_session.query(UserTenantRole).filter(
+            UserTenantRole.user_id == result.id
+        ).all()
+        assert len(user_tenant_roles) == 2
     
     def test_create_user_tokens(self, db_session, test_user, test_tenant):
         # Arrange
         user_id = test_user.id
-        tenant_id = test_tenant.id
-        permissions = ["read:own", "write:own"]
         
         # Act
-        token = AuthService.create_user_tokens(user_id, tenant_id, permissions)
+        token = AuthService.create_user_tokens(user_id)
         
         # Assert
         assert token.access_token is not None
@@ -413,7 +415,6 @@ class TestAuthService:
         # Arrange
         mock_verify_token.return_value = {
             "sub": str(test_user.id),
-            "tenant_id": str(test_tenant.id),
             "exp": datetime.utcnow() + timedelta(days=7)
         }
         
@@ -439,11 +440,8 @@ class TestAuthService:
     @patch("app.services.auth_service.verify_token")
     def test_verify_access_token_success(self, mock_verify_token, db_session, test_user, test_tenant):
         # Arrange
-        permissions = ["read:own", "write:own"]
         mock_verify_token.return_value = {
             "sub": str(test_user.id),
-            "tenant_id": str(test_tenant.id),
-            "permissions": permissions,
             "exp": datetime.utcnow() + timedelta(hours=1)
         }
         
@@ -453,8 +451,6 @@ class TestAuthService:
         # Assert
         assert token_data is not None
         assert token_data.user_id == test_user.id
-        assert token_data.tenant_id == test_tenant.id
-        assert token_data.permissions == permissions
     
     @patch("app.services.auth_service.verify_token")
     def test_verify_access_token_invalid_token(self, mock_verify_token, db_session):

@@ -57,8 +57,8 @@ class AuthService:
         }
     
     @staticmethod
-    def authenticate_user(db: Session, login_data: UserLogin) -> Optional[Dict[str, Any]]:
-        """Authenticate user and return user info with tenant context."""
+    def authenticate_user(db: Session, login_data: UserLogin) -> Optional[User]:
+        """Authenticate user and return user if credentials are valid."""
         # Get user
         user = UserService.get_user_by_email(db, login_data.email)
         if not user or not user.is_active:
@@ -68,41 +68,20 @@ class AuthService:
         if not verify_password(login_data.password, user.hashed_password):
             return None
         
-        # Get user's primary tenant (first active tenant)
-        user_tenant_roles = db.query(UserTenantRole).filter(
-            UserTenantRole.user_id == user.id
-        ).all()
+        # Update last login
+        UserService.update_last_login(db, user.id)
         
-        if not user_tenant_roles:
-            return None
-        
-        # Find first active tenant
-        for user_tenant_role in user_tenant_roles:
-            tenant = TenantService.get_tenant(db, user_tenant_role.tenant_id)
-            if tenant and tenant.is_active:
-                # Update last login
-                UserService.update_last_login(db, user.id)
-                
-                return {
-                    "user": user,
-                    "tenant": tenant,
-                    "role_info": user_tenant_role
-                }
-        
-        # No active tenant found
-        return None
+        return user
     
     @staticmethod
-    def create_user_tokens(user_id: UUID, tenant_id: UUID, permissions: list[str]) -> Token:
+    def create_user_tokens(user_id: UUID) -> Token:
         """Create access and refresh tokens for user."""
         token_data = {
-            "sub": str(user_id),
-            "tenant_id": str(tenant_id),
-            "permissions": permissions
+            "sub": str(user_id)
         }
         
         access_token = create_access_token(token_data)
-        refresh_token = create_refresh_token({"sub": str(user_id), "tenant_id": str(tenant_id)})
+        refresh_token = create_refresh_token({"sub": str(user_id)})
         
         return Token(
             access_token=access_token,
@@ -117,21 +96,13 @@ class AuthService:
             return None
         
         user_id = UUID(payload.get("sub"))
-        tenant_id = UUID(payload.get("tenant_id"))
         
-        # Verify user and tenant are still valid
+        # Verify user is still valid
         user = UserService.get_user(db, user_id)
         if not user or not user.is_active:
             return None
         
-        tenant = TenantService.get_tenant(db, tenant_id)
-        if not tenant or not tenant.is_active:
-            return None
-        
-        # Get current permissions
-        permissions = RoleService.get_user_permissions(db, user_id, tenant_id)
-        
-        return AuthService.create_user_tokens(user_id, tenant_id, permissions)
+        return AuthService.create_user_tokens(user_id)
     
     @staticmethod
     def verify_access_token(db: Session, token: str) -> Optional[TokenData]:
@@ -141,23 +112,13 @@ class AuthService:
             return None
         
         user_id = UUID(payload.get("sub"))
-        tenant_id = UUID(payload.get("tenant_id"))
-        permissions = payload.get("permissions", [])
         
-        # Verify user and tenant are still valid
+        # Verify user is still valid
         user = UserService.get_user(db, user_id)
         if not user or not user.is_active:
             return None
         
-        tenant = TenantService.get_tenant(db, tenant_id)
-        if not tenant or not tenant.is_active:
-            return None
-        
-        return TokenData(
-            user_id=user_id,
-            tenant_id=tenant_id,
-            permissions=permissions
-        )
+        return TokenData(user_id=user_id)
     
     @staticmethod
     async def verify_email(db: Session, token: str) -> bool:

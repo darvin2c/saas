@@ -32,17 +32,13 @@ def login_user(
     db: Session = Depends(get_db)
 ):
     """Login user and return JWT tokens."""
-    auth_result = AuthService.authenticate_user(db, login_data)
+    user = AuthService.authenticate_user(db, login_data)
     
-    if not auth_result:
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
         )
-    
-    user = auth_result["user"]
-    tenant = auth_result["tenant"]
-    role_info = auth_result["role_info"]
     
     if not user.is_verified:
         raise HTTPException(
@@ -50,11 +46,7 @@ def login_user(
             detail="Email not verified"
         )
     
-    tokens = AuthService.create_user_tokens(
-        user.id, 
-        tenant.id, 
-        role_info["permissions"]
-    )
+    tokens = AuthService.create_user_tokens(user.id)
     
     return tokens
 

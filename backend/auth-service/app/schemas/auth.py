@@ -24,9 +24,7 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    user_id: Optional[UUID] = None
-    tenant_id: Optional[UUID] = None
-    permissions: list[str] = []
+    user_id: UUID
 
 
 class RefreshToken(BaseModel):
