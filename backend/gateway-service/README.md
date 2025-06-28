@@ -39,8 +39,6 @@ La configuración se maneja a través de variables de entorno. Crea un archivo `
 
 ```
 # Configuración del gateway
-GATEWAY_HOST=0.0.0.0
-GATEWAY_PORT=8000
 CORS_ORIGINS=http://localhost:3000,https://example.com
 
 # Configuración de JWT

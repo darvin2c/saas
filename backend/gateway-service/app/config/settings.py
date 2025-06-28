@@ -13,8 +13,6 @@ class Settings(BaseSettings):
     
     # Configuración general de la aplicación
     APP_NAME: str = "API Gateway Service"
-    GATEWAY_HOST: str = "0.0.0.0"
-    GATEWAY_PORT: int = 8000
     
     # Configuración de CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
