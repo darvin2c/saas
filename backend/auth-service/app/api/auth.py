@@ -40,11 +40,11 @@ def login_user(
             detail="Incorrect email or password"
         )
     
-    if not user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email not verified"
-        )
+    #if not user.is_verified:
+    #    raise HTTPException(
+    #        status_code=status.HTTP_401_UNAUTHORIZED,
+    #        detail="Email not verified"
+    #    )
     
     tokens = AuthService.create_user_tokens(user.id)
     
