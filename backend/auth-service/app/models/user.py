@@ -10,13 +10,13 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String(255), unique=True, nullable=False, index=True)
-    first_name = Column(String(50), nullable=False)
-    last_name = Column(String(50), nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    email = Column(Text, unique=True, nullable=False, index=True)
+    first_name = Column(Text, nullable=False)
+    last_name = Column(Text, nullable=False)
+    hashed_password = Column(Text, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     is_verified = Column(Boolean, default=True, nullable=False)
-    reset_password_token = Column(String(255), nullable=True)
+    reset_password_token = Column(Text, nullable=True)
     reset_password_expires = Column(DateTime, nullable=True)
     last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)

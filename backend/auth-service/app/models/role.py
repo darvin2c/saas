@@ -19,7 +19,7 @@ class Role(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey('tenants.id'), nullable=False, index=True)
-    name = Column(String(50), nullable=False)
+    name = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     is_system_role = Column(Boolean, default=False, nullable=False)  # For super admin, etc.
     is_active = Column(Boolean, default=True, nullable=False)
