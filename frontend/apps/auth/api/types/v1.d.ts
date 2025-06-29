@@ -64,26 +64,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/verify-email": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Verify Email
-         * @description Verify user email with token.
-         */
-        post: operations["verify_email_verify_email_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/request-password-reset": {
         parameters: {
             query?: never;
@@ -118,6 +98,26 @@ export interface paths {
          * @description Reset password with token.
          */
         post: operations["reset_password_reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/exists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Email
+         * @description Check if email exists.
+         */
+        get: operations["check_email_users_exists_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -210,6 +210,26 @@ export interface paths {
          * @description Assign role to user.
          */
         post: operations["assign_user_role_users__user_id__assign_role_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/exists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Domain
+         * @description Check if tenant domain exists.
+         */
+        get: operations["check_domain_tenants_exists_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -492,11 +512,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** EmailVerification */
-        EmailVerification: {
-            /** Token */
-            token: string;
-        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -772,7 +787,10 @@ export interface components {
             id: string;
             /** Is Active */
             is_active: boolean;
-            /** Is Verified */
+            /**
+             * Is Verified
+             * @default true
+             */
             is_verified: boolean;
             /** Last Login */
             last_login?: string | null;
@@ -857,60 +875,6 @@ export interface components {
             last_name?: string | null;
             /** Is Active */
             is_active?: boolean | null;
-        };
-        /** UserWithTenantRole */
-        UserWithTenantRole: {
-            /**
-             * Email
-             * Format: email
-             */
-            email: string;
-            /** First Name */
-            first_name: string;
-            /** Last Name */
-            last_name: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Is Active */
-            is_active: boolean;
-            /** Is Verified */
-            is_verified: boolean;
-            /** Last Login */
-            last_login?: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /**
-             * Tenant Id
-             * Format: uuid
-             */
-            tenant_id: string;
-            /** Tenant Name */
-            tenant_name: string;
-            /** Tenant Domain */
-            tenant_domain: string;
-            /**
-             * Role Id
-             * Format: uuid
-             */
-            role_id: string;
-            /** Role Name */
-            role_name: string;
-            /**
-             * Permissions
-             * @default []
-             */
-            permissions: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -1031,39 +995,6 @@ export interface operations {
             };
         };
     };
-    verify_email_verify_email_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EmailVerification"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     request_password_reset_request_password_reset_post: {
         parameters: {
             query?: never;
@@ -1130,6 +1061,40 @@ export interface operations {
             };
         };
     };
+    check_email_users_exists_get: {
+        parameters: {
+            query: {
+                /** @description Email to check */
+                email: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_current_user_info_users_me_get: {
         parameters: {
             query?: never;
@@ -1145,7 +1110,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserWithTenantRole"];
+                    "application/json": components["schemas"]["User"];
                 };
             };
         };
@@ -1332,6 +1297,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_domain_tenants_exists_get: {
+        parameters: {
+            query: {
+                /** @description Tenant domain to check */
+                domain: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

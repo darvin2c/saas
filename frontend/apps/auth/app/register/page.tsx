@@ -9,19 +9,38 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { $apiV1 } from "@/api/api-v1"
+import { $apiV1, $fetchClientV1 } from "@/api/api-v1"
 import { Separator } from "@radix-ui/react-separator"
 import { useEffect } from "react"
 
 const schema = z.object({
-  email: z.string().email({ message: "El formato de correo electrónico es inválido" }),
-  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" })
-    .max(20, { message: "La contraseña debe tener como máximo 20 caracteres" }),
-  confirm_password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
-  first_name: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres" }),
-  last_name: z.string().min(2, { message: "El apellido debe tener al menos 2 caracteres" }),
-  tenant_name: z.string().min(2, { message: "El nombre del inquilino debe tener al menos 2 caracteres" }),
-  tenant_domain: z.string().min(2, { message: "El dominio del inquilino debe tener al menos 2 caracteres" }),
+  email: z.string().email({ message: "Correo electrónico inválido" }).refine(async (value) => {
+    const response = await $fetchClientV1.GET('/users/exists', {
+      params: {
+        query: {
+          email: value
+        }
+      }
+    })
+    return response.data?.exists === false
+  }, { message: "Correo electrónico ya registrado" }),
+
+  password: z.string().min(6, { message: "Contraseña muy corta" })
+    .max(20, { message: "Contraseña muy larga" }),
+  confirm_password: z.string().min(6, { message: "Contraseña muy corta" }),
+  first_name: z.string().min(2, { message: "Nombre demasiado corto" }),
+  last_name: z.string().min(2, { message: "Apellido demasiado corto" }),
+  tenant_name: z.string().min(2, { message: "Nombre del inquilino demasiado corto" }),
+  tenant_domain: z.string().min(2, { message: "Dominio del inquilino demasiado corto" }).refine(async (value) => {
+    const response = await $fetchClientV1.GET('/tenants/exists', {
+      params: {
+        query: {
+          domain: value
+        }
+      }
+    })
+    return response.data?.exists === false
+  }, { message: "Dominio ya registrado" }),
 }).refine((data) => data.password === data.confirm_password, {
   message: "Las contraseñas no coinciden",
   path: ["confirm_password"],
