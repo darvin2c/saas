@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/animate-ui/radix/dropdown-menu';
 import { $apiV1 } from '@/api/api-v1';
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -106,7 +106,9 @@ export function UserDropdownMenu() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive">
+        <DropdownMenuItem variant="destructive"
+          onClick={() => signOut()}
+        >
           <LogOut className="mr-2 size-4" />
           <span>Cerrar Sesión</span>
         </DropdownMenuItem>
