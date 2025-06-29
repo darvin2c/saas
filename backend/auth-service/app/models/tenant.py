@@ -18,5 +18,4 @@ class Tenant(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
     
     # Relationships
-    roles = relationship("Role", back_populates="tenant", cascade="all, delete-orphan")
-    user_tenant_roles = relationship("UserTenantRole", back_populates="tenant", cascade="all, delete-orphan")
+    user_tenants = relationship("UserTenant", back_populates="tenant", cascade="all, delete-orphan")

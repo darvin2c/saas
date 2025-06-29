@@ -36,10 +36,7 @@ class User(UserInDB):
     pass
 
 
-class UserWithTenantRole(UserInDB):
+class UserWithTenant(UserInDB):
     tenant_id: UUID
     tenant_name: str
     tenant_domain: str
-    role_id: UUID
-    role_name: str
-    permissions: list[str] = []

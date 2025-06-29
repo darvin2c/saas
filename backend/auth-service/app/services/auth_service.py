@@ -1,11 +1,12 @@
 from typing import Optional, Dict, Any
 from uuid import UUID
 from sqlalchemy.orm import Session
-from app.models import User, UserTenantRole
+from app.models import User, UserTenant
 from app.schemas.auth import UserRegister, Token, TokenData, UserLogin
 from app.schemas.tenant import TenantCreate
 from app.services.user_service import UserService
 from app.services.tenant_service import TenantService
+from app.services.user_tenant_service import UserTenantService
 from app.utils.auth import verify_password, create_access_token, create_refresh_token, verify_token
 
 
@@ -31,9 +32,9 @@ class AuthService:
         existing_user = UserService.get_user_by_email(db, user_data.email)
         if existing_user:
             # Check if user already belongs to this tenant
-            existing_assignment = db.query(UserTenantRole).filter(
-                UserTenantRole.user_id == existing_user.id,
-                UserTenantRole.tenant_id == tenant.id
+            existing_assignment = db.query(UserTenant).filter(
+                UserTenant.user_id == existing_user.id,
+                UserTenant.tenant_id == tenant.id
             ).first()
             
             if existing_assignment:
@@ -44,6 +45,14 @@ class AuthService:
             user = UserService.create_user(db, user_data, tenant.id)
         else:
             user = existing_user
+            
+        # Create user-tenant relationship
+        from app.schemas.user_tenant import UserTenantCreate
+        user_tenant_data = UserTenantCreate(
+            user_id=user.id,
+            tenant_id=tenant.id
+        )
+        UserTenantService.create_user_tenant(db, user_tenant_data)
         
         return {
             "message": "User registered successfully.",

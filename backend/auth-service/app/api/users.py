@@ -3,14 +3,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas.user import User, UserCreate, UserUpdate, UserWithTenantRole
+from app.schemas.user import User, UserCreate, UserUpdate, UserWithTenant
 from app.schemas.auth import TokenData
 from app.services.user_service import UserService
-from app.services.role_service import RoleService
-from app.api.dependencies import (
-    get_current_user, require_user_read, require_user_create, 
-    require_user_update, require_user_delete
-)
+from app.services.user_tenant_service import UserTenantService
+from app.api.dependencies import get_current_user
+import app.models
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -42,21 +40,37 @@ def get_current_user_info(
 def get_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, le=100),
-    current_user: TokenData = Depends(require_user_read),
+    tenant_id: UUID = Query(..., description="Tenant ID to filter users"),
+    current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get all users in the current tenant."""
-    users = UserService.get_tenant_users(db, current_user.tenant_id, skip, limit)
+    # Check if user belongs to the tenant
+    if not UserService.check_user_in_tenant(db, current_user.user_id, tenant_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not belong to this tenant"
+        )
+    
+    users = UserService.get_tenant_users(db, tenant_id, skip, limit)
     return users
 
 
 @router.get("/{user_id}", response_model=User)
 def get_user(
     user_id: UUID,
-    current_user: TokenData = Depends(require_user_read),
+    tenant_id: UUID = Query(..., description="Tenant ID"),
+    current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get user by ID."""
+    # Check if current user belongs to the tenant
+    if not UserService.check_user_in_tenant(db, current_user.user_id, tenant_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not belong to this tenant"
+        )
+    
     user = UserService.get_user(db, user_id)
     if not user:
         raise HTTPException(
@@ -64,9 +78,8 @@ def get_user(
             detail="User not found"
         )
     
-    # Check if user belongs to current tenant
-    user_role = UserService.get_user_tenant_role(db, user_id, current_user.tenant_id)
-    if not user_role:
+    # Check if requested user belongs to the tenant
+    if not UserService.check_user_in_tenant(db, user_id, tenant_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found in this tenant"
@@ -78,33 +91,60 @@ def get_user(
 @router.post("/", response_model=User)
 async def create_user(
     user: UserCreate,
-    current_user: TokenData = Depends(require_user_create),
+    tenant_id: UUID = Query(..., description="Tenant ID"),
+    current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create a new user in the current tenant."""
+    """Create a new user in the specified tenant."""
+    # Check if current user belongs to the tenant
+    if not UserService.check_user_in_tenant(db, current_user.user_id, tenant_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not belong to this tenant"
+        )
+    
     # Check if user already exists
     existing_user = UserService.get_user_by_email(db, user.email)
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email already exists"
-        )
+        # Check if user already belongs to this tenant
+        if UserService.check_user_in_tenant(db, existing_user.id, tenant_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User with this email already exists in this tenant"
+            )
     
-    new_user = UserService.create_user(db, user, current_user.tenant_id)
+    # Create new user
+    new_user = UserService.create_user(db, user, tenant_id)
+    
+    # Create user-tenant relationship
+    from app.schemas.user_tenant import UserTenantCreate
+    user_tenant_data = UserTenantCreate(
+        user_id=new_user.id,
+        tenant_id=tenant_id
+    )
+    UserTenantService.create_user_tenant(db, user_tenant_data)
+    
     return new_user
 
 
-@router.put("/{user_id}", response_model=User)
+@router.patch("/{user_id}", response_model=User)
 def update_user(
     user_id: UUID,
     user_update: UserUpdate,
-    current_user: TokenData = Depends(require_user_update),
+    tenant_id: UUID = Query(..., description="Tenant ID"),
+    current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update user."""
-    # Check if user belongs to current tenant
-    user_role = UserService.get_user_tenant_role(db, user_id, current_user.tenant_id)
-    if not user_role:
+    """Update user partially."""
+    # Check if current user belongs to the tenant
+    if not UserService.check_user_in_tenant(db, current_user.user_id, tenant_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not belong to this tenant"
+        )
+    
+    # Check if user to update belongs to the tenant
+    if not UserService.check_user_in_tenant(db, user_id, tenant_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found in this tenant"
@@ -123,13 +163,20 @@ def update_user(
 @router.delete("/{user_id}")
 def delete_user(
     user_id: UUID,
-    current_user: TokenData = Depends(require_user_delete),
+    tenant_id: UUID = Query(..., description="Tenant ID"),
+    current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete user."""
-    # Check if user belongs to current tenant
-    user_role = UserService.get_user_tenant_role(db, user_id, current_user.tenant_id)
-    if not user_role:
+    """Delete user from a tenant."""
+    # Check if current user belongs to the tenant
+    if not UserService.check_user_in_tenant(db, current_user.user_id, tenant_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not belong to this tenant"
+        )
+    
+    # Check if user to delete belongs to the tenant
+    if not UserService.check_user_in_tenant(db, user_id, tenant_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found in this tenant"
@@ -142,46 +189,19 @@ def delete_user(
             detail="Cannot delete yourself"
         )
     
-    success = UserService.delete_user(db, user_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+    # Delete user-tenant relationship instead of the user
+    user_tenant = db.query(app.models.UserTenant).filter(
+        app.models.UserTenant.user_id == user_id,
+        app.models.UserTenant.tenant_id == tenant_id
+    ).first()
     
-    return {"message": "User deleted successfully"}
-
-
-@router.post("/{user_id}/assign-role")
-def assign_user_role(
-    user_id: UUID,
-    role_id: UUID,
-    current_user: TokenData = Depends(require_user_update),
-    db: Session = Depends(get_db)
-):
-    """Assign role to user."""
-    # Check if user belongs to current tenant
-    user_role = UserService.get_user_tenant_role(db, user_id, current_user.tenant_id)
-    if not user_role:
+    if not user_tenant:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found in this tenant"
         )
     
-    # Check if role belongs to current tenant
-    role = db.query(app.models.Role).filter(
-        app.models.Role.id == role_id,
-        app.models.Role.tenant_id == current_user.tenant_id
-    ).first()
+    db.delete(user_tenant)
+    db.commit()
     
-    if not role:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Role not found in this tenant"
-        )
-    
-    assignment = RoleService.assign_user_role(
-        db, user_id, current_user.tenant_id, role_id, current_user.user_id
-    )
-    
-    return {"message": "Role assigned successfully", "assignment_id": assignment.id}
+    return {"message": "User removed from tenant successfully"}

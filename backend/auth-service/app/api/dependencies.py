@@ -1,9 +1,11 @@
-from typing import Optional, List
+from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from uuid import UUID
 from app.database import get_db
 from app.services.auth_service import AuthService
+from app.services.user_service import UserService
 from app.schemas.auth import TokenData
 
 security = HTTPBearer()
@@ -27,50 +29,13 @@ def get_current_user(
     return token_data
 
 
-def require_permissions(required_permissions: List[str]):
-    """Dependency to check if user has required permissions."""
-    def permission_checker(current_user: TokenData = Depends(get_current_user)):
-        user_permissions = set(current_user.permissions)
-        required_permissions_set = set(required_permissions)
-        
-        if not required_permissions_set.issubset(user_permissions):
+def verify_user_in_tenant(tenant_id: UUID):
+    """Verify that the current user belongs to the specified tenant."""
+    def tenant_checker(current_user: TokenData = Depends(get_current_user), db: Session = Depends(get_db)):
+        if not UserService.check_user_in_tenant(db, current_user.user_id, tenant_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions"
+                detail="User does not belong to this tenant"
             )
-        
         return current_user
-    
-    return permission_checker
-
-
-def require_any_permission(required_permissions: List[str]):
-    """Dependency to check if user has any of the required permissions."""
-    def permission_checker(current_user: TokenData = Depends(get_current_user)):
-        user_permissions = set(current_user.permissions)
-        required_permissions_set = set(required_permissions)
-        
-        if not user_permissions.intersection(required_permissions_set):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions"
-            )
-        
-        return current_user
-    
-    return permission_checker
-
-
-# Common permission dependencies
-require_user_read = require_permissions(["users:read"])
-require_user_create = require_permissions(["users:create"])
-require_user_update = require_permissions(["users:update"])
-require_user_delete = require_permissions(["users:delete"])
-
-require_role_read = require_permissions(["roles:read"])
-require_role_create = require_permissions(["roles:create"])
-require_role_update = require_permissions(["roles:update"])
-require_role_delete = require_permissions(["roles:delete"])
-
-require_tenant_read = require_permissions(["tenant:read"])
-require_tenant_update = require_permissions(["tenant:update"])
+    return tenant_checker

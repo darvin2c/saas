@@ -6,7 +6,8 @@ from app.database import get_db
 from app.schemas.tenant import Tenant, TenantCreate, TenantUpdate, TenantWithStats
 from app.schemas.auth import TokenData
 from app.services.tenant_service import TenantService
-from app.api.dependencies import get_current_user, require_tenant_read, require_tenant_update
+from app.services.user_service import UserService
+from app.api.dependencies import get_current_user
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
 
@@ -18,20 +19,28 @@ async def check_domain(domain: str = Query(..., description="Tenant domain to ch
     return {"exists": tenant is not None}
 
 
-@router.get("/current", response_model=TenantWithStats)
-def get_current_tenant(
-    current_user: TokenData = Depends(require_tenant_read),
+@router.get("/by-id/{tenant_id}", response_model=TenantWithStats)
+def get_tenant_by_id(
+    tenant_id: UUID,
+    current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get current tenant information."""
-    tenant = TenantService.get_tenant(db, current_user.tenant_id)
+    """Get tenant information by ID."""
+    # Check if user belongs to the tenant
+    if not UserService.check_user_in_tenant(db, current_user.user_id, tenant_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not belong to this tenant"
+        )
+    
+    tenant = TenantService.get_tenant(db, tenant_id)
     if not tenant:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Tenant not found"
         )
     
-    stats = TenantService.get_tenant_stats(db, current_user.tenant_id)
+    stats = TenantService.get_tenant_stats(db, tenant_id)
     
     return TenantWithStats(
         **tenant.__dict__,
@@ -39,14 +48,22 @@ def get_current_tenant(
     )
 
 
-@router.put("/current", response_model=Tenant)
-def update_current_tenant(
+@router.patch("/{tenant_id}", response_model=Tenant)
+def update_tenant(
+    tenant_id: UUID,
     tenant_update: TenantUpdate,
-    current_user: TokenData = Depends(require_tenant_update),
+    current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update current tenant."""
-    updated_tenant = TenantService.update_tenant(db, current_user.tenant_id, tenant_update)
+    """Update tenant partially."""
+    # Check if user belongs to the tenant
+    if not UserService.check_user_in_tenant(db, current_user.user_id, tenant_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not belong to this tenant"
+        )
+    
+    updated_tenant = TenantService.update_tenant(db, tenant_id, tenant_update)
     if not updated_tenant:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

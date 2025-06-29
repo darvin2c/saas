@@ -1,7 +1,5 @@
 from .tenant import Tenant
 from .user import User
-from .role import Role
-from .permission import Permission
-from .user_tenant_role import UserTenantRole
+from .user_tenant import UserTenant
 
-__all__ = ["Tenant", "User", "Role", "Permission", "UserTenantRole"]
+__all__ = ["Tenant", "User", "UserTenant"]

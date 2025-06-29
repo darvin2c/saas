@@ -4,20 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db, SessionLocal
-from app.api import auth, users, tenants, roles, permissions
-from app.services.permission_service import PermissionService
+from app.api import auth, users, tenants
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan events for the application."""
-    # Startup event: Initialize default permissions
+    # Startup event
     db = SessionLocal()
     try:
-        # Create default permissions
-        PermissionService.create_default_permissions(db)
-        print("Default permissions initialized")
+        print("Auth service started")
     except Exception as e:
-        print(f"Error initializing default permissions: {e}")
+        print(f"Error during startup: {e}")
     finally:
         db.close()
     
@@ -49,8 +46,6 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(tenants.router)
-app.include_router(roles.router)
-app.include_router(permissions.router)
 
 
 @app.get("/")

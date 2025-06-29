@@ -2,7 +2,7 @@ from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.models import Tenant, User, Role, UserTenantRole
+from app.models import Tenant, User, UserTenant
 from app.schemas.tenant import TenantCreate, TenantUpdate
 
 
@@ -19,10 +19,6 @@ class TenantService:
         db.add(db_tenant)
         db.commit()
         db.refresh(db_tenant)
-        
-        # Create default super admin role for the tenant
-        from app.services.role_service import RoleService
-        RoleService.create_default_super_admin_role(db, db_tenant.id)
         
         return db_tenant
     
@@ -70,15 +66,10 @@ class TenantService:
     @staticmethod
     def get_tenant_stats(db: Session, tenant_id: UUID) -> dict:
         """Get tenant statistics."""
-        user_count = db.query(func.count(UserTenantRole.user_id.distinct())).filter(
-            UserTenantRole.tenant_id == tenant_id
-        ).scalar()
-        
-        role_count = db.query(func.count(Role.id)).filter(
-            Role.tenant_id == tenant_id
+        user_count = db.query(func.count(UserTenant.user_id.distinct())).filter(
+            UserTenant.tenant_id == tenant_id
         ).scalar()
         
         return {
-            "user_count": user_count or 0,
-            "role_count": role_count or 0
+            "user_count": user_count or 0
         }

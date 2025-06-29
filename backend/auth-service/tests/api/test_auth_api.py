@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.models import User, Tenant, Role, UserTenantRole
+from app.models import User, Tenant, UserTenant
 from app.utils.auth import get_password_hash, create_access_token
 from app.services.auth_service import AuthService
 import uuid
@@ -54,35 +54,18 @@ def test_tenant(db_session):
 
 
 @pytest.fixture
-def test_role(db_session):
-    """Fixture para crear un rol de prueba."""
-    role = Role(
-        id=uuid.uuid4(),
-        name="User",
-        description="Regular user role",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
-    )
-    db_session.add(role)
-    db_session.commit()
-    db_session.refresh(role)
-    return role
-
-
-@pytest.fixture
-def test_user_with_tenant_role(db_session, test_user, test_tenant, test_role):
-    """Fixture para crear una relación usuario-tenant-rol."""
-    user_tenant_role = UserTenantRole(
+def test_user_with_tenant(db_session, test_user, test_tenant):
+    """Fixture para crear una relación usuario-tenant."""
+    user_tenant = UserTenant(
         id=uuid.uuid4(),
         user_id=test_user.id,
         tenant_id=test_tenant.id,
-        role_id=test_role.id,
         assigned_at=datetime.utcnow()
     )
-    db_session.add(user_tenant_role)
+    db_session.add(user_tenant)
     db_session.commit()
-    db_session.refresh(user_tenant_role)
-    return user_tenant_role
+    db_session.refresh(user_tenant)
+    return user_tenant
 
 
 @pytest.fixture

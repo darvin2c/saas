@@ -2,7 +2,7 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from app.models import User, Tenant, UserTenantRole, Role
+from app.models import User, Tenant, UserTenant
 from app.schemas.user import UserCreate, UserUpdate
 from app.utils.auth import get_password_hash, generate_reset_token
 
@@ -52,8 +52,8 @@ class UserService:
     @staticmethod
     def get_tenant_users(db: Session, tenant_id: UUID, skip: int = 0, limit: int = 100) -> List[User]:
         """Get all users for a tenant."""
-        return db.query(User).join(UserTenantRole).filter(
-            UserTenantRole.tenant_id == tenant_id
+        return db.query(User).join(UserTenant).filter(
+            UserTenant.tenant_id == tenant_id
         ).offset(skip).limit(limit).all()
     
     @staticmethod
@@ -95,9 +95,9 @@ class UserService:
         if not tenant:
             return None
         
-        user_tenant = db.query(UserTenantRole).filter(
-            UserTenantRole.user_id == user.id,
-            UserTenantRole.tenant_id == tenant.id
+        user_tenant = db.query(UserTenant).filter(
+            UserTenant.user_id == user.id,
+            UserTenant.tenant_id == tenant.id
         ).first()
         
         if not user_tenant:
@@ -134,24 +134,11 @@ class UserService:
         db.commit()
     
     @staticmethod
-    def get_user_tenant_role(db: Session, user_id: UUID, tenant_id: UUID) -> Optional[dict]:
-        """Get user's role and permissions in a tenant."""
-        assignment = db.query(UserTenantRole).filter(
-            UserTenantRole.user_id == user_id,
-            UserTenantRole.tenant_id == tenant_id
+    def check_user_in_tenant(db: Session, user_id: UUID, tenant_id: UUID) -> bool:
+        """Check if a user belongs to a tenant."""
+        user_tenant = db.query(UserTenant).filter(
+            UserTenant.user_id == user_id,
+            UserTenant.tenant_id == tenant_id
         ).first()
         
-        if not assignment:
-            return None
-        
-        role = db.query(Role).filter(Role.id == assignment.role_id).first()
-        if not role:
-            return None
-        
-        permissions = [perm.name for perm in role.permissions]
-        
-        return {
-            "role_id": role.id,
-            "role_name": role.name,
-            "permissions": permissions
-        }
+        return user_tenant is not None
