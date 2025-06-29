@@ -15,6 +15,13 @@ from app.api.dependencies import (
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+@router.get("/exists", response_model=dict)
+async def check_email(email: str = Query(..., description="Email to check"), db: Session = Depends(get_db)):
+    """Check if email exists."""
+    user = UserService.get_user_by_email(db, email)
+    return {"exists": user is not None}
+
+
 @router.get("/me", response_model=User)
 def get_current_user_info(
     current_user: TokenData = Depends(get_current_user),

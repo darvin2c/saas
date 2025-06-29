@@ -11,6 +11,13 @@ from app.api.dependencies import get_current_user, require_tenant_read, require_
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
 
 
+@router.get("/exists", response_model=dict)
+async def check_domain(domain: str = Query(..., description="Tenant domain to check"), db: Session = Depends(get_db)):
+    """Check if tenant domain exists."""
+    tenant = TenantService.get_tenant_by_domain(db, domain)
+    return {"exists": tenant is not None}
+
+
 @router.get("/current", response_model=TenantWithStats)
 def get_current_tenant(
     current_user: TokenData = Depends(require_tenant_read),
