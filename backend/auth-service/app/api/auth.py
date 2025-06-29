@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.auth import (
     UserLogin, UserRegister, Token, RefreshToken, 
-    PasswordReset, PasswordResetConfirm, EmailVerification
+    PasswordReset, PasswordResetConfirm
 )
 from app.services.auth_service import AuthService
 
@@ -67,22 +67,6 @@ def refresh_token(
     
     return tokens
 
-
-@router.post("/verify-email")
-async def verify_email(
-    verification_data: EmailVerification,
-    db: Session = Depends(get_db)
-):
-    """Verify user email with token."""
-    success = await AuthService.verify_email(db, verification_data.token)
-    
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid verification token"
-        )
-    
-    return {"message": "Email verified successfully"}
 
 
 @router.post("/request-password-reset")

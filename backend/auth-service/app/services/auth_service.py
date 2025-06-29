@@ -1,14 +1,12 @@
 from typing import Optional, Dict, Any
 from uuid import UUID
 from sqlalchemy.orm import Session
-from app.models import User, Tenant, UserTenantRole
+from app.models import User, UserTenantRole
 from app.schemas.auth import UserRegister, Token, TokenData, UserLogin
 from app.schemas.tenant import TenantCreate
 from app.services.user_service import UserService
 from app.services.tenant_service import TenantService
-from app.services.role_service import RoleService
 from app.utils.auth import verify_password, create_access_token, create_refresh_token, verify_token
-from app.utils.email import send_verification_email
 
 
 class AuthService:
@@ -47,13 +45,10 @@ class AuthService:
         else:
             user = existing_user
         
-        # Send verification email
-        await send_verification_email(user.email, user.verification_token, tenant.domain)
-        
         return {
-            "message": "User registered successfully. Please check your email for verification.",
+            "message": "User registered successfully.",
             "user_id": user.id,
-            "requires_verification": not user.is_verified
+            "requires_verification": False
         }
     
     @staticmethod
@@ -120,11 +115,7 @@ class AuthService:
         
         return TokenData(user_id=user_id)
     
-    @staticmethod
-    async def verify_email(db: Session, token: str) -> bool:
-        """Verify user email."""
-        return UserService.verify_user_email(db, token)
-    
+
     @staticmethod
     async def request_password_reset(db: Session, email: str, tenant_domain: str) -> bool:
         """Request password reset."""

@@ -51,11 +51,6 @@ def verify_token(token: str, token_type: str = "access") -> Optional[Dict[str, A
         return None
 
 
-def generate_verification_token() -> str:
-    """Generate a secure random token for email verification."""
-    return secrets.token_urlsafe(32)
-
-
 def generate_reset_token() -> str:
     """Generate a secure random token for password reset."""
     return secrets.token_urlsafe(32)

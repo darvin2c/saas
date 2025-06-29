@@ -38,6 +38,10 @@ if (-not (Test-Path -Path "$servicePath\requirements.txt")) {
 Write-Host "Instalando dependencias desde requirements.txt..."
 & $pythonPath -m pip install -r "$servicePath\requirements.txt"
 
+# cargar variables de entorno .env.test
+$env:DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/saas_test"
+$env:SECRET_KEY = "secret_key"
+
 # Mostrar variables de entorno para depuración
 Write-Host "Variables de entorno configuradas:"
 Write-Host "DATABASE_URL=$env:DATABASE_URL"

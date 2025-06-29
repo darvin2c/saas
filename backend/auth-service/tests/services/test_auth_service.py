@@ -72,7 +72,7 @@ def test_user(db_session):
         last_name=fake.last_name(),
         is_active=True,
         is_verified=True,
-        verification_token=str(uuid.uuid4()),
+
         reset_password_token=None,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
@@ -84,6 +84,8 @@ def test_user(db_session):
     return user
 
 
+# Esta fixture ya no es necesaria ya que todos los usuarios están verificados por defecto
+# Se mantiene para compatibilidad con pruebas existentes
 @pytest.fixture
 def unverified_user(db_session):
     user = User(
@@ -93,8 +95,7 @@ def unverified_user(db_session):
         first_name=fake.first_name(),
         last_name=fake.last_name(),
         is_active=True,
-        is_verified=False,
-        verification_token=str(uuid.uuid4()),
+        is_verified=True,
         reset_password_token=None,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
@@ -124,8 +125,7 @@ def user_tenant_role(db_session, test_user, test_tenant, test_role):
 class TestAuthService:
     
     @pytest.mark.asyncio
-    @patch("app.services.auth_service.send_verification_email", new_callable=AsyncMock)
-    async def test_register_user_success(self, mock_send_email, db_session, test_tenant, test_role):
+    async def test_register_user_success(self, db_session, test_tenant, test_role):
         # Arrange
         user_data = UserRegister(
             email=fake.email(),
@@ -141,18 +141,15 @@ class TestAuthService:
         
         # Assert
         assert "user_id" in result
-        assert result["message"] == "User registered successfully. Please check your email for verification."
-        assert result["requires_verification"] is True
+        assert result["message"] == "User registered successfully."
+        assert result["requires_verification"] is False
         
         # Verify user was created in database
         user = db_session.query(User).filter(User.email == user_data.email).first()
         assert user is not None
         assert user.first_name == user_data.first_name
         assert user.last_name == user_data.last_name
-        assert user.is_verified is False
-        
-        # Verify email was sent
-        mock_send_email.assert_called_once()
+        assert user.is_verified is True
         
         # Create user-tenant relationship manually since AuthService.register_user doesn't do it
         user_tenant_role = UserTenantRole(
@@ -191,7 +188,7 @@ class TestAuthService:
         
         # Assert
         assert "user_id" in result
-        assert result["message"] == "User registered successfully. Please check your email for verification."
+        assert result["message"] == "User registered successfully."
         
         # Verify that a new tenant was created
         new_tenant = db_session.query(Tenant).filter(Tenant.domain == tenant_domain).first()
@@ -215,8 +212,7 @@ class TestAuthService:
             await AuthService.register_user(db_session, user_data)
     
     @pytest.mark.asyncio
-    @patch("app.services.auth_service.send_verification_email", new_callable=AsyncMock)
-    async def test_register_existing_user_new_tenant(self, mock_send_email, db_session, test_user, test_tenant, test_role):
+    async def test_register_existing_user_new_tenant(self, db_session, test_user, test_tenant, test_role):
         # Create a new tenant
         new_tenant = Tenant(
             id=uuid.uuid4(),
@@ -323,7 +319,7 @@ class TestAuthService:
             last_name=fake.last_name(),
             is_active=True,
             is_verified=True,
-            verification_token=str(uuid.uuid4()),
+    
             reset_password_token=None,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
@@ -463,27 +459,7 @@ class TestAuthService:
         # Assert
         assert token_data is None
     
-    @pytest.mark.asyncio
-    async def test_verify_email_success(self, db_session, unverified_user):
-        # Arrange
-        token = unverified_user.verification_token
-        
-        # Act
-        with patch("app.services.user_service.UserService.verify_user_email", return_value=True):
-            result = await AuthService.verify_email(db_session, token)
-        
-        # Assert
-        assert result is True
-    
-    @pytest.mark.asyncio
-    async def test_verify_email_failure(self, db_session):
-        # Act
-        with patch("app.services.user_service.UserService.verify_user_email", return_value=False):
-            result = await AuthService.verify_email(db_session, "invalid_token")
-        
-        # Assert
-        assert result is False
-    
+
     @pytest.mark.asyncio
     @patch("app.services.user_service.UserService.initiate_password_reset")
     @patch("app.utils.email.send_reset_password_email", new_callable=AsyncMock)

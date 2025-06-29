@@ -24,7 +24,7 @@ class UserUpdate(BaseModel):
 class UserInDB(UserBase):
     id: UUID
     is_active: bool
-    is_verified: bool
+    is_verified: bool = True
     last_login: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

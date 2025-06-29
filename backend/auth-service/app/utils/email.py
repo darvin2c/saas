@@ -31,26 +31,6 @@ async def send_email(to_email: str, subject: str, html_content: str) -> bool:
         return False
 
 
-async def send_verification_email(email: str, token: str, tenant_domain: str) -> bool:
-    """Send email verification email."""
-    verification_url = f"http://localhost:8000/verify-email?token={token}&tenant={tenant_domain}"
-    
-    html_content = f"""
-    <html>
-      <body>
-        <h2>Verify Your Email Address</h2>
-        <p>Hello!</p>
-        <p>Please click the link below to verify your email address for {tenant_domain}:</p>
-        <p><a href="{verification_url}">Verify Email</a></p>
-        <p>If you did not create an account, please ignore this email.</p>
-        <p>The verification link will expire in 24 hours.</p>
-      </body>
-    </html>
-    """
-    
-    return await send_email(email, "Verify Your Email Address", html_content)
-
-
 async def send_reset_password_email(email: str, token: str, tenant_domain: str) -> bool:
     """Send password reset email."""
     reset_url = f"http://localhost:8000/reset-password?token={token}&tenant={tenant_domain}"

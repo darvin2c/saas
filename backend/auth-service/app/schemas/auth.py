@@ -39,7 +39,3 @@ class PasswordReset(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str
-
-
-class EmailVerification(BaseModel):
-    token: str

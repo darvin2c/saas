@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.models import User, Tenant, UserTenantRole, Role
 from app.schemas.user import UserCreate, UserUpdate
-from app.utils.auth import get_password_hash, generate_verification_token, generate_reset_token
+from app.utils.auth import get_password_hash, generate_reset_token
 
 
 class UserService:
@@ -13,14 +13,12 @@ class UserService:
     def create_user(db: Session, user: UserCreate, tenant_id: UUID) -> User:
         """Create a new user."""
         hashed_password = get_password_hash(user.password)
-        verification_token = generate_verification_token()
         
         db_user = User(
             email=user.email,
             first_name=user.first_name,
             last_name=user.last_name,
-            hashed_password=hashed_password,
-            verification_token=verification_token
+            hashed_password=hashed_password
         )
         db.add(db_user)
         db.commit()
@@ -37,11 +35,7 @@ class UserService:
         """Get user by email."""
         return db.query(User).filter(User.email == email).first()
     
-    @staticmethod
-    def get_user_by_verification_token(db: Session, token: str) -> Optional[User]:
-        """Get user by verification token."""
-        return db.query(User).filter(User.verification_token == token).first()
-    
+
     @staticmethod
     def get_user_by_reset_token(db: Session, token: str) -> Optional[User]:
         """Get user by reset password token."""
@@ -88,18 +82,7 @@ class UserService:
         db.commit()
         return True
     
-    @staticmethod
-    def verify_user_email(db: Session, token: str) -> bool:
-        """Verify user email with token."""
-        user = UserService.get_user_by_verification_token(db, token)
-        if not user:
-            return False
-        
-        user.is_verified = True
-        user.verification_token = None
-        db.commit()
-        return True
-    
+
     @staticmethod
     def initiate_password_reset(db: Session, email: str, tenant_domain: str) -> Optional[User]:
         """Initiate password reset process."""
