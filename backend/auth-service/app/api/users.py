@@ -36,6 +36,24 @@ def get_current_user_info(
     return user
 
 
+@router.patch("/me", response_model=User)
+def update_current_user(
+    user_update: UserUpdate,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update current user information."""
+    user = UserService.update_user(db, current_user.user_id, user_update)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    return user
+
+
+
 @router.get("/", response_model=List[User])
 def get_users(
     skip: int = Query(0, ge=0),

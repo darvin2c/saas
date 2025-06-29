@@ -51,9 +51,9 @@ Write-Host "SECRET_KEY=****" # No mostrar la clave secreta completa por segurida
 if ($args.Count -gt 0) {
     $testFile = $args[0]
     # Ejecutar el test específico con salida visible (-s)
-    & $pythonPath -m pytest $testFile -v -s
+    & $pythonPath -m pytest $testFile -v # -s
 }
 else {
     # Ejecutar todos los tests con salida visible (-s)
-    & $pythonPath -m pytest tests -v -s
+    & $pythonPath -m pytest tests -v # -s
 }

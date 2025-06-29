@@ -19,35 +19,6 @@ async def check_domain(domain: str = Query(..., description="Tenant domain to ch
     return {"exists": tenant is not None}
 
 
-@router.get("/by-id/{tenant_id}", response_model=TenantWithStats)
-def get_tenant_by_id(
-    tenant_id: UUID,
-    current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get tenant information by ID."""
-    # Check if user belongs to the tenant
-    if not UserService.check_user_in_tenant(db, current_user.user_id, tenant_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not belong to this tenant"
-        )
-    
-    tenant = TenantService.get_tenant(db, tenant_id)
-    if not tenant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tenant not found"
-        )
-    
-    stats = TenantService.get_tenant_stats(db, tenant_id)
-    
-    return TenantWithStats(
-        **tenant.__dict__,
-        **stats
-    )
-
-
 @router.patch("/{tenant_id}", response_model=Tenant)
 def update_tenant(
     tenant_id: UUID,
