@@ -27,6 +27,7 @@ import {
 import { $apiV1 } from '@/api/api-v1';
 import { signOut, useSession } from 'next-auth/react';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 
 
@@ -75,8 +76,12 @@ export function UserDropdownMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>
-            <User className="mr-2 size-4" />
-            <span>Editar Perfil</span>
+            <Link href="/perfil/editar"
+              className="flex items-center gap-2"
+            >
+              <User className="mr-2 size-4" />
+              <span>Editar Perfil</span>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
             <Lock className="mr-2 size-4" />
