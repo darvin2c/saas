@@ -76,7 +76,7 @@ export function UserDropdownMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>
-            <Link href="/perfil/editar"
+            <Link href="/profile"
               className="flex items-center gap-2"
             >
               <User className="mr-2 size-4" />
@@ -84,23 +84,12 @@ export function UserDropdownMenu() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
-            <Lock className="mr-2 size-4" />
-            <span>Cambiar Contraseña</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Bell className="mr-2 size-4" />
-            <span>Notificaciones</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Settings className="mr-2 size-4" />
-            <span>Preferencias</span>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <Grid className="mr-2 size-4" />
-            <span>Cambiar Tenant</span>
+            <Link href="/profile/change-password"
+              className="flex items-center gap-2"
+            >
+              <Lock className="mr-2 size-4" />
+              <span>Cambiar Contraseña</span>
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

@@ -49,11 +49,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   password: credentials.password as string,
               }
           })
-          
+          console.log(response)
           if (response.data) {
               // Transform the token response into a User object
               const tokenData = response.data
-              
               // Create a User object with required id and optional properties
               const user = {
                 id: credentials.email as string, // Using email as ID or you could use a JWT claim
@@ -63,7 +62,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 refresh_token: tokenData.refresh_token,
                 token_type: tokenData.token_type
               }
-              
               return user
           }
           

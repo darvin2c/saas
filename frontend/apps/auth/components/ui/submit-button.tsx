@@ -1,6 +1,7 @@
 
 
 import { Button } from "./button";
+import { Loader2 } from "lucide-react";
 
 export function SubmitButton(
     {
@@ -16,7 +17,7 @@ export function SubmitButton(
             type="submit"
             disabled={isPending}
         >
-            {isPending ? "Enviando..." : children}
+            {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando</> : children}
         </Button>
     )
 }

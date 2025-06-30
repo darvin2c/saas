@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-
+import { useQueryClient } from '@tanstack/react-query';
 import { $apiV1 } from '@/api/api-v1';
 import {
   Form,
@@ -21,17 +21,15 @@ import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 // Esquema de validación para el formulario
 const profileFormSchema = z.object({
-  first_name: z.string().min(2, {
-    message: 'El nombre debe tener al menos 2 caracteres.',
+  first_name: z.string().min(1, {
+    message: 'El nombre es requerido.',
   }),
-  last_name: z.string().min(2, {
-    message: 'El apellido debe tener al menos 2 caracteres.',
-  }),
-  email: z.string().email({
-    message: 'Por favor ingresa un correo electrónico válido.',
+  last_name: z.string().min(1, {
+    message: 'El apellido es requerido.',
   }),
 });
 
@@ -40,6 +38,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 export default function EditProfilePage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const queryClient = useQueryClient();
   
   // Obtener los datos del usuario
   const { data: user, isLoading } = $apiV1.useQuery('get', '/users/me', 
@@ -58,18 +57,37 @@ export default function EditProfilePage() {
     defaultValues: {
       first_name: user?.first_name || '',
       last_name: user?.last_name || '',
-      email: user?.email || '',
     },
     values: {
       first_name: user?.first_name || '',
       last_name: user?.last_name || '',
-      email: user?.email || '',
     },
   });
 
+  const { mutateAsync: updateProfile, isPending } = $apiV1.useMutation('patch', '/users/me');
+
   // Función para manejar el envío del formulario
   async function onSubmit(data: ProfileFormValues) {
-  
+    await updateProfile({
+      body: data,
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`
+      }
+    }, {
+      onSuccess: () => {
+        toast.success('Perfil actualizado correctamente', {
+          duration: 3000,
+          
+        });
+        // invalidate the query
+        queryClient.invalidateQueries({
+          queryKey: ['get', '/users/me'],
+        });
+      },
+      onError: () => {
+        toast.error('Error al actualizar el perfil');
+      }
+    });
   }
 
   // Mostrar un esqueleto mientras se cargan los datos
@@ -114,7 +132,7 @@ export default function EditProfilePage() {
                 name="first_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nombre</FormLabel>
+                    <FormLabel>Nombre</FormLabel> 
                     <FormControl>
                       <Input placeholder="Tu nombre" {...field} />
                     </FormControl>
@@ -137,27 +155,6 @@ export default function EditProfilePage() {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Correo electrónico</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="email" 
-                        placeholder="tu@ejemplo.com" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Este correo se usará para iniciar sesión en tu cuenta.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
               <div className="flex justify-between">
                 <Button 
                   type="button" 
@@ -166,7 +163,9 @@ export default function EditProfilePage() {
                 >
                   Cancelar
                 </Button>
-                <SubmitButton>
+                <SubmitButton
+                  isPending={isPending}
+                >
                   Guardar cambios
                 </SubmitButton>
               </div>
