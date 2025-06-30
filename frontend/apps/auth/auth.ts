@@ -49,6 +49,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   password: credentials.password as string,
               }
           })
+          console.log(credentials)
           console.log(response)
           if (response.data) {
               // Transform the token response into a User object

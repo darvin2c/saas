@@ -52,17 +52,6 @@ export default function AuthLayout({
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>General</SidebarGroupLabel>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton>
-                  <LayoutDashboard className="size-4" />
-                  <span>Dashboard</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
 
           <SidebarGroup>
             <SidebarGroupLabel>Tenants</SidebarGroupLabel>
