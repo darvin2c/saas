@@ -216,7 +216,7 @@ class TestAuthAPI:
         """Prueba el restablecimiento exitoso de contraseña."""
         # Mock para el servicio de autenticación
         def mock_reset_password(*args, **kwargs):
-            return {"message": "Password reset successfully"}
+            return True
         
         monkeypatch.setattr(AuthService, "reset_password", mock_reset_password)
         
@@ -232,3 +232,60 @@ class TestAuthAPI:
         # Verificar la respuesta
         assert response.status_code == 200
         assert response.json()["message"] == "Password reset successfully"
+        
+    def test_change_password_success(self, db_session, test_user, auth_headers, monkeypatch):
+        """Prueba el cambio exitoso de contraseña para un usuario autenticado."""
+        # Mock para el servicio de autenticación
+        def mock_change_password(*args, **kwargs):
+            return True
+        
+        monkeypatch.setattr(AuthService, "change_password", mock_change_password)
+        
+        # Datos de prueba
+        password_data = {
+            "current_password": "testpassword123",
+            "new_password": "NewPassword456!"
+        }
+        
+        # Realizar la solicitud
+        response = client.post("/change-password", json=password_data, headers=auth_headers)
+        
+        # Verificar la respuesta
+        assert response.status_code == 200
+        assert response.json()["message"] == "Password changed successfully"
+        
+    def test_change_password_incorrect_current_password(self, db_session, test_user, auth_headers, monkeypatch):
+        """Prueba el cambio de contraseña con contraseña actual incorrecta."""
+        # Mock para el servicio de autenticación
+        def mock_change_password(*args, **kwargs):
+            return False
+        
+        monkeypatch.setattr(AuthService, "change_password", mock_change_password)
+        
+        # Datos de prueba
+        password_data = {
+            "current_password": "wrongpassword",
+            "new_password": "NewPassword456!"
+        }
+        
+        # Realizar la solicitud
+        response = client.post("/change-password", json=password_data, headers=auth_headers)
+        
+        # Verificar la respuesta
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Current password is incorrect"
+        
+    def test_change_password_unauthorized(self, db_session):
+        """Prueba el cambio de contraseña sin autenticación."""
+        # Datos de prueba
+        password_data = {
+            "current_password": "testpassword123",
+            "new_password": "NewPassword456!"
+        }
+        
+        # Realizar la solicitud sin token de autenticación
+        response = client.post("/change-password", json=password_data)
+        
+        # Verificar la respuesta
+        # La API devuelve 403 cuando no hay token de autenticación
+        assert response.status_code == 403

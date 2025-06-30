@@ -124,6 +124,8 @@ class UserService:
         user.reset_password_expires = None
         db.commit()
         return True
+
+
     
     @staticmethod
     def update_last_login(db: Session, user_id: UUID) -> None:
@@ -142,3 +144,21 @@ class UserService:
         ).first()
         
         return user_tenant is not None
+        
+    @staticmethod
+    def change_password(db: Session, user_id: UUID, current_password: str, new_password: str) -> bool:
+        """Change user password if current password is correct."""
+        from app.utils.auth import verify_password, get_password_hash
+        
+        user = UserService.get_user(db, user_id)
+        if not user:
+            return False
+            
+        # Verify current password
+        if not verify_password(current_password, user.hashed_password):
+            return False
+            
+        # Update password
+        user.hashed_password = get_password_hash(new_password)
+        db.commit()
+        return True

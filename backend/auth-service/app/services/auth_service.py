@@ -141,3 +141,8 @@ class AuthService:
     def reset_password(db: Session, token: str, new_password: str) -> bool:
         """Reset user password."""
         return UserService.reset_password(db, token, new_password)
+        
+    @staticmethod
+    def change_password(db: Session, user_id: UUID, current_password: str, new_password: str) -> bool:
+        """Change user password if current password is correct."""
+        return UserService.change_password(db, user_id, current_password, new_password)

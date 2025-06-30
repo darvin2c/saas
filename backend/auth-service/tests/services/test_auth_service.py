@@ -393,6 +393,51 @@ class TestAuthService:
         # Assert
         assert token is None
     
+    def test_change_password_success(self, db_session, test_user):
+        # Arrange
+        current_password = "password123"  # This matches the fixture password
+        new_password = "newpassword456"
+        
+        # Act
+        result = AuthService.change_password(db_session, test_user.id, current_password, new_password)
+        
+        # Assert
+        assert result is True
+        
+        # Verify password was changed
+        from app.utils.auth import verify_password
+        updated_user = db_session.query(User).filter(User.id == test_user.id).first()
+        assert verify_password(new_password, updated_user.hashed_password) is True
+        assert verify_password(current_password, updated_user.hashed_password) is False
+    
+    def test_change_password_wrong_current_password(self, db_session, test_user):
+        # Arrange
+        wrong_current_password = "wrongpassword"
+        new_password = "newpassword456"
+        
+        # Act
+        result = AuthService.change_password(db_session, test_user.id, wrong_current_password, new_password)
+        
+        # Assert
+        assert result is False
+        
+        # Verify password was not changed
+        from app.utils.auth import verify_password
+        updated_user = db_session.query(User).filter(User.id == test_user.id).first()
+        assert verify_password("password123", updated_user.hashed_password) is True
+    
+    def test_change_password_user_not_found(self, db_session):
+        # Arrange
+        non_existent_user_id = uuid.uuid4()
+        current_password = "password123"
+        new_password = "newpassword456"
+        
+        # Act
+        result = AuthService.change_password(db_session, non_existent_user_id, current_password, new_password)
+        
+        # Assert
+        assert result is False
+        
     @patch("app.services.auth_service.verify_token")
     def test_verify_access_token_success(self, mock_verify_token, db_session, test_user, test_tenant):
         # Arrange

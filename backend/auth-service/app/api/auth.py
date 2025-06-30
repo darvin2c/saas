@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.auth import (
     UserLogin, UserRegister, Token, RefreshToken, 
-    PasswordReset, PasswordResetConfirm
+    PasswordReset, PasswordResetConfirm, PasswordChange
 )
 from app.services.auth_service import AuthService
+from app.api.dependencies import get_current_user
 
 router = APIRouter(tags=["Authentication"])
 
@@ -98,3 +99,26 @@ def reset_password(
         )
     
     return {"message": "Password reset successfully"}
+
+
+@router.post("/change-password")
+def change_password(
+    password_data: PasswordChange,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change password for authenticated user."""
+    success = AuthService.change_password(
+        db, 
+        current_user.user_id, 
+        password_data.current_password, 
+        password_data.new_password
+    )
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    return {"message": "Password changed successfully"}
