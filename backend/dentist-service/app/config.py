@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import Optional
 import os
 
@@ -12,8 +13,7 @@ class Settings(BaseSettings):
     AUTH_SERVICE_URL: Optional[str] = os.environ.get("AUTH_SERVICE_URL", "http://localhost:8000")
     DEBUG: bool = os.environ.get("DEBUG", "False").lower() in ("true", "1", "t")
     
-    class Config:
-        env_file = ".env"
+    model_config = ConfigDict(env_file=".env")
 
 
 settings = Settings()
