@@ -48,15 +48,8 @@ def filter_patients(
     
     Example: /tenants/123/patients/filter?first_name__like=Jo&is_active=true&order_by=["last_name"]
     """
-    # Ensure tenant_id filter matches the path parameter
-    if patient_filter.tenant_id is None:
-        patient_filter.tenant_id = tenant_id
-    elif patient_filter.tenant_id != tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant ID in filter must match the tenant ID in the path"
-        )
-    
+    # El tenant_id se pasa directamente al servicio y no como parte del filtro
+    # ya que es un parámetro obligatorio de seguridad
     return PatientService.filter_patients(db, tenant_id, patient_filter)
 
 
