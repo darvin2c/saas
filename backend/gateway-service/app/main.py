@@ -32,7 +32,8 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan
+    lifespan=lifespan,
+    debug=settings.DEBUG    
 )
 
 # CORS middleware
