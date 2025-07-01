@@ -1,0 +1,106 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
+from sqlalchemy.orm import Session
+from typing import List, Optional
+from uuid import UUID
+
+from app.database import get_db
+from app.schemas.patient import Patient, PatientCreate, PatientUpdate
+from app.services.patient_service import PatientService
+from app.utils.auth import validate_token, get_tenant_id_from_path
+
+router = APIRouter(
+    tags=["patients"],
+    responses={404: {"description": "Not found"}},
+)
+
+
+@router.get("/{tenant_id}/patients", response_model=List[Patient])
+def get_patients(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Get all patients for the specified tenant with pagination.
+    """
+    patients = PatientService.get_patients(db, tenant_id, skip, limit)
+    return patients
+
+
+@router.get("/{tenant_id}/patients/search", response_model=List[Patient])
+def search_patients(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    query: str = Query(..., description="Texto de búsqueda"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Search for patients by name or email.
+    """
+    patients = PatientService.search_patients(db, tenant_id, query, skip, limit)
+    return patients
+
+
+@router.get("/{tenant_id}/patients/{patient_id}", response_model=Patient)
+def get_patient(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    patient_id: UUID = Path(..., description="ID del paciente"),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Get a specific patient by ID.
+    """
+    return PatientService.get_patient(db, patient_id, tenant_id)
+
+
+@router.post("/{tenant_id}/patients", response_model=Patient, status_code=status.HTTP_201_CREATED)
+def create_patient(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    patient_data: PatientCreate = Depends(),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Create a new patient.
+    """
+    # Ensure the tenant_id in the request matches the URL tenant_id
+    if patient_data.tenant_id != tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tenant ID mismatch"
+        )
+    
+    return PatientService.create_patient(db, patient_data)
+
+
+@router.put("/{tenant_id}/patients/{patient_id}", response_model=Patient)
+def update_patient(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    patient_id: UUID = Path(..., description="ID del paciente"),
+    patient_data: PatientUpdate = Depends(),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Update an existing patient.
+    """
+    return PatientService.update_patient(db, patient_id, tenant_id, patient_data)
+
+
+@router.delete("/{tenant_id}/patients/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_patient(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    patient_id: UUID = Path(..., description="ID del paciente"),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Delete a patient (soft delete).
+    """
+    PatientService.delete_patient(db, patient_id, tenant_id)
+    return None

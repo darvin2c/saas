@@ -1,0 +1,15 @@
+fastapi[standard]>=0.115.0
+uvicorn>=0.24.0
+sqlalchemy>=2.0.41
+pydantic>=2.11.5
+pydantic-settings>=2.10.1
+python-jose>=3.5.0
+httpx>=0.28.1
+pytest>=8.4.1
+pytest-cov>=6.2.1
+alembic>=1.16.2
+psycopg2-binary>=2.9.9
+email-validator>=2.1.0.post1
+passlib[bcrypt]>=1.7.4
+faker>=21.12.1
+
