@@ -56,13 +56,15 @@ class PatientService:
         return patient
     
     @staticmethod
-    def delete_patient(db: Session, patient_id: UUID, tenant_id: UUID) -> None:
+    def delete_patient(db: Session, patient_id: UUID, tenant_id: UUID) -> Patient:
         """
         Delete a patient (soft delete by setting is_active to False).
         """
         patient = PatientService.get_patient(db, patient_id, tenant_id)
         patient.is_active = False
         db.commit()
+        db.refresh(patient)
+        return patient
     
     @staticmethod
     def hard_delete_patient(db: Session, patient_id: UUID, tenant_id: UUID) -> None:

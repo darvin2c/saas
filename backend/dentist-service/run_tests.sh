@@ -31,7 +31,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Configurar variables de entorno para pruebas
-export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/dentist_service_test"
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/saas_test"
 export SECRET_KEY="test_secret_key"
 
 # Ejecutar pruebas

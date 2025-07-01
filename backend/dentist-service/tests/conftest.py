@@ -125,7 +125,19 @@ def db_session(setup_database):
 @pytest.fixture
 def client(setup_database):
     """Proporciona un cliente de prueba para la API."""
+    # Sobrescribir la dependencia get_db
     app.dependency_overrides[get_db] = override_get_db
+    
+    # Sobrescribir la dependencia validate_token para evitar la autenticación en los tests
+    def mock_validate_token():
+        return {"sub": "test_user", "tenant_ids": ["test_tenant"]}
+    
+    # Importar validate_token desde el módulo correcto
+    from app.utils.auth import validate_token
+    app.dependency_overrides[validate_token] = mock_validate_token
+    
     with TestClient(app) as test_client:
         yield test_client
+    
+    # Limpiar todas las sobrescrituras de dependencias
     app.dependency_overrides.clear()
