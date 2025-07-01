@@ -7,6 +7,7 @@ from app.database import get_db
 from app.schemas.patient import Patient, PatientCreate, PatientUpdate
 from app.services.patient_service import PatientService
 from app.utils.auth import validate_token, get_tenant_id_from_path
+from app.filters.patient_filter import get_patient_filter, PatientFilter
 
 router = APIRouter(
     tags=["patients"],
@@ -27,6 +28,36 @@ def get_patients(
     """
     patients = PatientService.get_patients(db, tenant_id, skip, limit)
     return patients
+
+
+@router.get("/{tenant_id}/patients/filter", response_model=List[Patient])
+def filter_patients(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token),
+    patient_filter: PatientFilter = get_patient_filter()
+):
+    """
+    Filter patients using multiple criteria.
+    
+    This endpoint allows filtering patients by various fields and operators:
+    - Exact matches: id, tenant_id, is_active, first_name, last_name, email, etc.
+    - Text search with LIKE: first_name__like, last_name__like, email__like, etc.
+    - Date ranges: date_of_birth__gte, date_of_birth__lte, created_at__gte, etc.
+    - Sorting: order_by=["last_name", "-first_name"] (use - for descending order)
+    
+    Example: /tenants/123/patients/filter?first_name__like=Jo&is_active=true&order_by=["last_name"]
+    """
+    # Ensure tenant_id filter matches the path parameter
+    if patient_filter.tenant_id is None:
+        patient_filter.tenant_id = tenant_id
+    elif patient_filter.tenant_id != tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tenant ID in filter must match the tenant ID in the path"
+        )
+    
+    return PatientService.filter_patients(db, tenant_id, patient_filter)
 
 
 @router.get("/{tenant_id}/patients/search", response_model=List[Patient])

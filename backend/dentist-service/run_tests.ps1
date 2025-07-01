@@ -18,6 +18,9 @@ if (-not (Test-Path -Path ".venv\Scripts\python.exe")) {
     exit 1
 }
 
+# actualizar  pip 
+.venv\Scripts\python.exe -m pip install --upgrade pip
+
 # Verificar si existe el archivo requirements.txt
 if (-not (Test-Path -Path "requirements.txt")) {
     Write-Host "Error: No se encontró el archivo requirements.txt" -ForegroundColor Red

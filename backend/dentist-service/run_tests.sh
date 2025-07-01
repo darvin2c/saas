@@ -10,6 +10,9 @@ if [ ! -d ".venv" ]; then
     fi
 fi
 
+# actualizar  pip 
+.venv/bin/pip install --upgrade pip
+
 # Verificar si existe el ejecutable de Python en el entorno virtual
 if [ ! -f ".venv/bin/python" ]; then
     echo "Error: No se encontró el ejecutable de Python en el entorno virtual"

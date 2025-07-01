@@ -94,6 +94,36 @@ class TestPatientsAPI:
                 # No verificamos los parámetros exactos porque la sesión DB puede ser diferente
                 assert mock_search.called
     
+    def test_filter_patients(self, client, db_session, test_tenant_id, test_patient):
+        """Prueba el filtrado de pacientes con múltiples criterios."""
+        # Configurar el mock para get_tenant_id_from_path
+        with patch("app.api.patients.get_tenant_id_from_path", return_value=test_tenant_id):
+            # Configurar el mock para filter_patients
+            with patch.object(
+                PatientService, 
+                "filter_patients", 
+                return_value=[test_patient]
+            ) as mock_filter:
+                # Realizar la solicitud GET con múltiples filtros
+                response = client.get(
+                    f"/{test_tenant_id}/patients/filter",
+                    params={
+                        "first_name__like": "Jo",
+                        "is_active": "true",
+                        "order_by": ["last_name"]
+                    }
+                )
+                
+                # Verificar la respuesta
+                assert response.status_code == 200
+                patients = response.json()
+                assert len(patients) == 1
+                assert patients[0]["id"] == str(test_patient.id)
+                
+                # Verificar que se llamó al método filter_patients
+                # No verificamos los parámetros exactos porque la sesión DB puede ser diferente
+                assert mock_filter.called
+    
     def test_get_patient(self, client, db_session, test_tenant_id, test_patient):
         """Prueba la obtención de un paciente específico por ID."""
         # Configurar el mock para get_tenant_id_from_path

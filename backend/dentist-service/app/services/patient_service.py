@@ -5,6 +5,7 @@ from uuid import UUID
 
 from app.models.patient import Patient
 from app.schemas.patient import PatientCreate, PatientUpdate
+from app.filters.patient_filter import PatientFilter
 
 
 class PatientService:
@@ -14,6 +15,15 @@ class PatientService:
         Get all patients for a specific tenant with pagination.
         """
         return db.query(Patient).filter(Patient.tenant_id == tenant_id).offset(skip).limit(limit).all()
+    
+    @staticmethod
+    def filter_patients(db: Session, tenant_id: UUID, patient_filter: PatientFilter) -> List[Patient]:
+        """
+        Filter patients using fastapi-filter.
+        """
+        query = db.query(Patient).filter(Patient.tenant_id == tenant_id)
+        query = patient_filter.filter(query)
+        return patient_filter.sort(query).all()
     
     @staticmethod
     def get_patient(db: Session, patient_id: UUID, tenant_id: UUID) -> Patient:
