@@ -26,7 +26,7 @@ jobs:
       with:
         python-version: '3.x'
         
-    - name: Run migrations
+    - name: Run migrations for auth service
       run: |
         cd backend/auth-service
         chmod +x ./run_migrations.sh
@@ -36,5 +36,18 @@ jobs:
       env:
         # Use DATABASE_URL directly as that's what the script expects
         DATABASE_URL: ${{ secrets.AUTH_DATABASE_URL }}
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        PYTHONUNBUFFERED: 1
+
+    - name: Run migrations for dentist service
+      run: |
+        cd backend/dentist-service
+        chmod +x ./run_migrations.sh
+        # Pass the database URL directly to the script
+        ./run_migrations.sh
+      shell: bash
+      env:
+        # Use DATABASE_URL directly as that's what the script expects
+        DATABASE_URL: ${{ secrets.DENTIST_DATABASE_URL }}
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
         PYTHONUNBUFFERED: 1
