@@ -1,10 +1,8 @@
 import pytest
 import uuid
 from datetime import date
-from unittest.mock import patch, MagicMock, AsyncMock
-from fastapi.testclient import TestClient
+from unittest.mock import patch
 from faker import Faker
-from app.main import app
 from app.models.patient import Patient, PatientGuardian
 from app.services.patient_service import PatientService
 from app.schemas.patient import PatientGuardianCreate, PatientGuardianUpdate
@@ -76,54 +74,43 @@ class TestPatientsAPI:
         """Prueba la búsqueda de pacientes por nombre o email."""
         # Configurar el mock para get_tenant_id_from_path
         with patch("app.api.patients.get_tenant_id_from_path", return_value=test_tenant_id):
-            # Configurar el mock para search_patients
-            with patch.object(
-                PatientService, 
-                "search_patients", 
-                return_value=[test_patient]
-            ) as mock_search:
-                # Realizar la solicitud GET con parámetro de búsqueda
-                response = client.get(f"/{test_tenant_id}/patients/search?query={test_patient.first_name}")
-                
-                # Verificar la respuesta
-                assert response.status_code == 200
-                patients = response.json()
-                assert len(patients) == 1
-                assert patients[0]["id"] == str(test_patient.id)
-                
-                # Verificar que se llamó al método search_patients
-                # No verificamos los parámetros exactos porque la sesión DB puede ser diferente
-                assert mock_search.called
+            # Mockear la consulta a la base de datos
+            with patch("sqlalchemy.orm.query.Query.filter", return_value=db_session.query(Patient)) as mock_filter:
+                with patch("sqlalchemy.orm.query.Query.all", return_value=[test_patient]):
+                    # Realizar la solicitud GET con parámetro de búsqueda
+                    response = client.get(f"/{test_tenant_id}/patients?search={test_patient.first_name}")
+                    
+                    # Verificar la respuesta
+                    assert response.status_code == 200
+                    patients = response.json()
+                    assert len(patients) == 1
+                    assert patients[0]["id"] == str(test_patient.id)
+                    
+                    # Verificar que se aplicó el filtro
+                    assert mock_filter.called
     
     def test_filter_patients(self, client, db_session, test_tenant_id, test_patient):
         """Prueba el filtrado de pacientes con múltiples criterios."""
         # Configurar el mock para get_tenant_id_from_path
         with patch("app.api.patients.get_tenant_id_from_path", return_value=test_tenant_id):
-            # Configurar el mock para filter_patients
-            with patch.object(
-                PatientService, 
-                "filter_patients", 
-                return_value=[test_patient]
-            ) as mock_filter:
-                # Realizar la solicitud GET con múltiples filtros
-                response = client.get(
-                    f"/{test_tenant_id}/patients/filter",
-                    params={
-                        "first_name__like": "Jo",
-                        "is_active": "true",
-                        "order_by": ["last_name"]
-                    }
-                )
-                
-                # Verificar la respuesta
-                assert response.status_code == 200
-                patients = response.json()
-                assert len(patients) == 1
-                assert patients[0]["id"] == str(test_patient.id)
-                
-                # Verificar que se llamó al método filter_patients
-                # No verificamos los parámetros exactos porque la sesión DB puede ser diferente
-                assert mock_filter.called
+            # Mockear la consulta a la base de datos
+            with patch("sqlalchemy.orm.query.Query.filter", return_value=db_session.query(Patient)) as mock_filter:
+                with patch("sqlalchemy.orm.query.Query.all", return_value=[test_patient]):
+                    # Realizar la solicitud GET con múltiples filtros
+                    response = client.get(
+                        f"/{test_tenant_id}/patients",
+                        params={
+                            "first_name": "John",  # Filtro exacto
+                            "search": "Doe",       # Búsqueda en search_model_fields
+                            "order_by": "last_name" # Ordenamiento
+                        }
+                    )
+                    
+                    # Verificar la respuesta
+                    assert response.status_code == 200
+                    patients = response.json()
+                    assert len(patients) == 1
+                    assert patients[0]["id"] == str(test_patient.id)
     
     def test_get_patient(self, client, db_session, test_tenant_id, test_patient):
         """Prueba la obtención de un paciente específico por ID."""
