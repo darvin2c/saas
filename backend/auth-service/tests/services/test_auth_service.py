@@ -1,7 +1,7 @@
 import pytest
 import uuid
 from unittest.mock import patch, AsyncMock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from faker import Faker
 from app.services.auth_service import AuthService
 from app.models import User, Tenant, UserTenant
@@ -19,8 +19,8 @@ def test_tenant(db_session):
         name=fake.company(),
         domain=f"test-{uuid.uuid4().hex[:8]}.com",
         is_active=True,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )
     db_session.add(tenant)
     db_session.commit()
@@ -35,8 +35,8 @@ def inactive_tenant(db_session):
         name=fake.company(),
         domain=f"inactive-{uuid.uuid4().hex[:8]}.com",
         is_active=False,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )
     db_session.add(tenant)
     db_session.commit()
@@ -59,8 +59,8 @@ def test_user(db_session):
         is_verified=True,
 
         reset_password_token=None,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
         last_login=None
     )
     db_session.add(user)
@@ -82,8 +82,8 @@ def unverified_user(db_session):
         is_active=True,
         is_verified=True,
         reset_password_token=None,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
         last_login=None
     )
     db_session.add(user)
@@ -98,7 +98,7 @@ def user_tenant(db_session, test_user, test_tenant):
         id=uuid.uuid4(),
         user_id=test_user.id,
         tenant_id=test_tenant.id,
-        assigned_at=datetime.utcnow()
+        assigned_at=datetime.now(timezone.utc)
     )
     db_session.add(user_tenant)
     db_session.commit()
@@ -192,8 +192,8 @@ class TestAuthService:
             name=fake.company(),
             domain=f"second-{uuid.uuid4().hex[:8]}.com",
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db_session.add(new_tenant)
         db_session.commit()
@@ -283,8 +283,8 @@ class TestAuthService:
             is_verified=True,
     
             reset_password_token=None,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
             last_login=None
         )
         db_session.add(user)
@@ -310,8 +310,8 @@ class TestAuthService:
             name=fake.company(),
             domain=f"second-{uuid.uuid4().hex[:8]}.com",
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db_session.add(second_tenant)
         db_session.commit()
@@ -321,7 +321,7 @@ class TestAuthService:
             id=uuid.uuid4(),
             user_id=test_user.id,
             tenant_id=test_tenant.id,
-            assigned_at=datetime.utcnow()
+            assigned_at=datetime.now(timezone.utc)
         )
         db_session.add(first_user_tenant)
         
@@ -330,7 +330,7 @@ class TestAuthService:
             id=uuid.uuid4(),
             user_id=test_user.id,
             tenant_id=second_tenant.id,
-            assigned_at=datetime.utcnow()
+            assigned_at=datetime.now(timezone.utc)
         )
         db_session.add(second_user_tenant)
         db_session.commit()
@@ -371,7 +371,7 @@ class TestAuthService:
         # Arrange
         mock_verify_token.return_value = {
             "sub": str(test_user.id),
-            "exp": datetime.utcnow() + timedelta(days=7)
+            "exp": datetime.now(timezone.utc) + timedelta(days=7)
         }
         
         # Act
@@ -443,7 +443,7 @@ class TestAuthService:
         # Arrange
         mock_verify_token.return_value = {
             "sub": str(test_user.id),
-            "exp": datetime.utcnow() + timedelta(hours=1)
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1)
         }
         
         # Act

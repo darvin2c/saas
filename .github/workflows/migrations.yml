@@ -48,6 +48,6 @@ jobs:
       shell: bash
       env:
         # Use DATABASE_URL directly as that's what the script expects
-        DATABASE_URL: ${{ secrets.DENTIST_DATABASE_URL }}
+        DATABASE_URL: ${{ secrets.AUTH_DATABASE_URL }}
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
         PYTHONUNBUFFERED: 1

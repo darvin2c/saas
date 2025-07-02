@@ -1,6 +1,6 @@
 import pytest
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from faker import Faker
 from app.services.patient_service import PatientService
 from app.models.patient import Patient
@@ -29,8 +29,8 @@ def test_patient(db_session, test_tenant_id):
         address=fake.address(),
         medical_history="Sin antecedentes médicos relevantes",
         is_active=True,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )
     db_session.add(patient)
     db_session.commit()
@@ -50,8 +50,8 @@ class TestPatientService:
             last_name=fake.last_name(),
             email=fake.email(),
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db_session.add(second_patient)
         
@@ -63,8 +63,8 @@ class TestPatientService:
             last_name=fake.last_name(),
             email=fake.email(),
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db_session.add(other_tenant_patient)
         db_session.commit()
