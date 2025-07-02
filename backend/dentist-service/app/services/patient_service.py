@@ -3,8 +3,8 @@ from fastapi import HTTPException, status
 from typing import List, Optional
 from uuid import UUID
 
-from app.models.patient import Patient
-from app.schemas.patient import PatientCreate, PatientUpdate
+from app.models.patient import Patient, PatientGuardian
+from app.schemas.patient import PatientCreate, PatientUpdate, PatientGuardianCreate, PatientGuardianUpdate
 from app.filters.patient_filter import PatientFilter
 
 
@@ -105,3 +105,99 @@ class PatientService:
                 Patient.email.ilike(search)
             )
         ).offset(skip).limit(limit).all()
+    
+    # Patient Guardian methods
+    @staticmethod
+    def get_patient_guardians(db: Session, patient_id: UUID) -> List[PatientGuardian]:
+        """
+        Get all guardians for a specific patient.
+        """
+        return db.query(PatientGuardian).filter(PatientGuardian.patient_id == patient_id).all()
+    
+    @staticmethod
+    def get_guardian_patients(db: Session, guardian_id: UUID) -> List[PatientGuardian]:
+        """
+        Get all patients for a specific guardian.
+        """
+        return db.query(PatientGuardian).filter(PatientGuardian.guardian_id == guardian_id).all()
+    
+    @staticmethod
+    def get_patient_guardian(db: Session, patient_id: UUID, guardian_id: UUID) -> PatientGuardian:
+        """
+        Get a specific patient-guardian relationship.
+        """
+        guardian_relation = db.query(PatientGuardian).filter(
+            PatientGuardian.patient_id == patient_id,
+            PatientGuardian.guardian_id == guardian_id
+        ).first()
+        
+        if not guardian_relation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Guardian relationship not found for patient {patient_id} and guardian {guardian_id}"
+            )
+        return guardian_relation
+    
+    @staticmethod
+    def create_patient_guardian(db: Session, guardian_data: PatientGuardianCreate) -> PatientGuardian:
+        """
+        Create a new patient-guardian relationship.
+        """
+        # Verify that both patient and guardian exist
+        patient = db.query(Patient).filter(Patient.id == guardian_data.patient_id).first()
+        guardian = db.query(Patient).filter(Patient.id == guardian_data.guardian_id).first()
+        
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Patient with ID {guardian_data.patient_id} not found"
+            )
+            
+        if not guardian:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Guardian with ID {guardian_data.guardian_id} not found"
+            )
+        
+        # Check if the relationship already exists
+        existing_relation = db.query(PatientGuardian).filter(
+            PatientGuardian.patient_id == guardian_data.patient_id,
+            PatientGuardian.guardian_id == guardian_data.guardian_id
+        ).first()
+        
+        if existing_relation:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Guardian relationship already exists between patient {guardian_data.patient_id} and guardian {guardian_data.guardian_id}"
+            )
+        
+        db_guardian_relation = PatientGuardian(**guardian_data.model_dump())
+        db.add(db_guardian_relation)
+        db.commit()
+        db.refresh(db_guardian_relation)
+        return db_guardian_relation
+    
+    @staticmethod
+    def update_patient_guardian(db: Session, patient_id: UUID, guardian_id: UUID, guardian_data: PatientGuardianUpdate) -> PatientGuardian:
+        """
+        Update an existing patient-guardian relationship.
+        """
+        guardian_relation = PatientService.get_patient_guardian(db, patient_id, guardian_id)
+        
+        # Update only the fields that are provided
+        update_data = guardian_data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(guardian_relation, key, value)
+        
+        db.commit()
+        db.refresh(guardian_relation)
+        return guardian_relation
+    
+    @staticmethod
+    def delete_patient_guardian(db: Session, patient_id: UUID, guardian_id: UUID) -> None:
+        """
+        Delete a patient-guardian relationship.
+        """
+        guardian_relation = PatientService.get_patient_guardian(db, patient_id, guardian_id)
+        db.delete(guardian_relation)
+        db.commit()

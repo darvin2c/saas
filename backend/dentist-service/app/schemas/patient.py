@@ -41,3 +41,29 @@ class PatientInDB(PatientBase):
 
 class Patient(PatientInDB):
     pass
+
+
+class PatientGuardianBase(BaseModel):
+    patient_id: UUID
+    guardian_id: UUID
+    relationship: str
+
+
+class PatientGuardianCreate(PatientGuardianBase):
+    pass
+
+
+class PatientGuardianUpdate(BaseModel):
+    relationship: Optional[str] = None
+
+
+class PatientGuardianInDB(PatientGuardianBase):
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PatientGuardian(PatientGuardianInDB):
+    pass

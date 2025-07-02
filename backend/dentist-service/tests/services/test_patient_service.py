@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime, date, timezone
 from faker import Faker
 from app.services.patient_service import PatientService
-from app.models.patient import Patient
-from app.schemas.patient import PatientCreate, PatientUpdate
+from app.models.patient import Patient, PatientGuardian
+from app.schemas.patient import PatientCreate, PatientUpdate, PatientGuardianCreate, PatientGuardianUpdate
 from fastapi import HTTPException
 
 # Inicializar Faker
@@ -194,3 +194,234 @@ class TestPatientService:
         # Verificar que se lanza la excepción correcta
         assert excinfo.value.status_code == 404
         assert "not found" in excinfo.value.detail
+    
+    # Tests para la funcionalidad de guardianes de pacientes
+    @pytest.fixture
+    def test_guardian(self, db_session, test_tenant_id):
+        """Fixture para crear un guardián de prueba (que es también un paciente)."""
+        guardian = Patient(
+            id=uuid.uuid4(),
+            tenant_id=test_tenant_id,
+            first_name=fake.first_name(),
+            last_name=fake.last_name(),
+            email=fake.email(),
+            phone=fake.phone_number(),
+            date_of_birth=date(1970, 1, 1),  # Fecha de nacimiento de un adulto
+            address=fake.address(),
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
+        )
+        db_session.add(guardian)
+        db_session.commit()
+        db_session.refresh(guardian)
+        return guardian
+    
+    @pytest.fixture
+    def test_patient_guardian(self, db_session, test_patient, test_guardian):
+        """Fixture para crear una relación paciente-guardián de prueba."""
+        patient_guardian = PatientGuardian(
+            id=uuid.uuid4(),
+            patient_id=test_patient.id,
+            guardian_id=test_guardian.id,
+            relationship="Padre/Madre",
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
+        )
+        db_session.add(patient_guardian)
+        db_session.commit()
+        db_session.refresh(patient_guardian)
+        return patient_guardian
+    
+    def test_get_patient_guardians(self, db_session, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la obtención de todos los guardianes para un paciente específico."""
+        # Obtener guardianes del paciente
+        guardians = PatientService.get_patient_guardians(db_session, test_patient.id)
+        
+        # Verificar que se obtuvo el guardián correcto
+        assert len(guardians) == 1
+        assert guardians[0].patient_id == test_patient.id
+        assert guardians[0].guardian_id == test_guardian.id
+        assert guardians[0].relationship == "Padre/Madre"
+    
+    def test_get_guardian_patients(self, db_session, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la obtención de todos los pacientes para un guardián específico."""
+        # Obtener pacientes del guardián
+        patients = PatientService.get_guardian_patients(db_session, test_guardian.id)
+        
+        # Verificar que se obtuvo el paciente correcto
+        assert len(patients) == 1
+        assert patients[0].patient_id == test_patient.id
+        assert patients[0].guardian_id == test_guardian.id
+        assert patients[0].relationship == "Padre/Madre"
+    
+    def test_get_patient_guardian(self, db_session, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la obtención de una relación específica paciente-guardián."""
+        # Obtener la relación paciente-guardián
+        guardian_relation = PatientService.get_patient_guardian(db_session, test_patient.id, test_guardian.id)
+        
+        # Verificar que se obtuvo la relación correcta
+        assert guardian_relation.patient_id == test_patient.id
+        assert guardian_relation.guardian_id == test_guardian.id
+        assert guardian_relation.relationship == "Padre/Madre"
+    
+    def test_get_patient_guardian_not_found(self, db_session, test_patient, test_guardian):
+        """Prueba la obtención de una relación paciente-guardián que no existe."""
+        # Eliminar cualquier relación existente
+        db_session.query(PatientGuardian).filter(
+            PatientGuardian.patient_id == test_patient.id,
+            PatientGuardian.guardian_id == test_guardian.id
+        ).delete()
+        db_session.commit()
+        
+        # Intentar obtener una relación que no existe
+        with pytest.raises(HTTPException) as excinfo:
+            PatientService.get_patient_guardian(db_session, test_patient.id, test_guardian.id)
+        
+        # Verificar que se lanza la excepción correcta
+        assert excinfo.value.status_code == 404
+        assert "Guardian relationship not found" in excinfo.value.detail
+    
+    def test_create_patient_guardian(self, db_session, test_patient, test_guardian):
+        """Prueba la creación de una nueva relación paciente-guardián."""
+        # Eliminar cualquier relación existente
+        db_session.query(PatientGuardian).filter(
+            PatientGuardian.patient_id == test_patient.id,
+            PatientGuardian.guardian_id == test_guardian.id
+        ).delete()
+        db_session.commit()
+        
+        # Datos para crear una nueva relación
+        guardian_data = PatientGuardianCreate(
+            patient_id=test_patient.id,
+            guardian_id=test_guardian.id,
+            relationship="Tío/Tía"
+        )
+        
+        # Crear la relación
+        guardian_relation = PatientService.create_patient_guardian(db_session, guardian_data)
+        
+        # Verificar que la relación se creó correctamente
+        assert guardian_relation.id is not None
+        assert guardian_relation.patient_id == test_patient.id
+        assert guardian_relation.guardian_id == test_guardian.id
+        assert guardian_relation.relationship == "Tío/Tía"
+    
+    def test_create_patient_guardian_duplicate(self, db_session, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la creación de una relación paciente-guardián duplicada."""
+        # Datos para crear una relación que ya existe
+        guardian_data = PatientGuardianCreate(
+            patient_id=test_patient.id,
+            guardian_id=test_guardian.id,
+            relationship="Otro parentesco"
+        )
+        
+        # Intentar crear una relación duplicada
+        with pytest.raises(HTTPException) as excinfo:
+            PatientService.create_patient_guardian(db_session, guardian_data)
+        
+        # Verificar que se lanza la excepción correcta
+        assert excinfo.value.status_code == 400
+        assert "Guardian relationship already exists" in excinfo.value.detail
+    
+    def test_create_patient_guardian_patient_not_found(self, db_session, test_guardian):
+        """Prueba la creación de una relación con un paciente que no existe."""
+        # Datos con un paciente que no existe
+        guardian_data = PatientGuardianCreate(
+            patient_id=uuid.uuid4(),
+            guardian_id=test_guardian.id,
+            relationship="Abuelo/Abuela"
+        )
+        
+        # Intentar crear la relación
+        with pytest.raises(HTTPException) as excinfo:
+            PatientService.create_patient_guardian(db_session, guardian_data)
+        
+        # Verificar que se lanza la excepción correcta
+        assert excinfo.value.status_code == 404
+        assert "Patient with ID" in excinfo.value.detail
+    
+    def test_create_patient_guardian_guardian_not_found(self, db_session, test_patient):
+        """Prueba la creación de una relación con un guardián que no existe."""
+        # Datos con un guardián que no existe
+        guardian_data = PatientGuardianCreate(
+            patient_id=test_patient.id,
+            guardian_id=uuid.uuid4(),
+            relationship="Abuelo/Abuela"
+        )
+        
+        # Intentar crear la relación
+        with pytest.raises(HTTPException) as excinfo:
+            PatientService.create_patient_guardian(db_session, guardian_data)
+        
+        # Verificar que se lanza la excepción correcta
+        assert excinfo.value.status_code == 404
+        assert "Guardian with ID" in excinfo.value.detail
+    
+    def test_update_patient_guardian(self, db_session, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la actualización de una relación paciente-guardián existente."""
+        # Datos para actualizar la relación
+        update_data = PatientGuardianUpdate(
+            relationship="Tutor legal"
+        )
+        
+        # Actualizar la relación
+        updated_relation = PatientService.update_patient_guardian(
+            db_session, test_patient.id, test_guardian.id, update_data
+        )
+        
+        # Verificar que la relación se actualizó correctamente
+        assert updated_relation.patient_id == test_patient.id
+        assert updated_relation.guardian_id == test_guardian.id
+        assert updated_relation.relationship == "Tutor legal"
+    
+    def test_update_patient_guardian_not_found(self, db_session, test_patient, test_guardian):
+        """Prueba la actualización de una relación paciente-guardián que no existe."""
+        # Eliminar cualquier relación existente
+        db_session.query(PatientGuardian).filter(
+            PatientGuardian.patient_id == test_patient.id,
+            PatientGuardian.guardian_id == test_guardian.id
+        ).delete()
+        db_session.commit()
+        
+        # Datos para actualizar
+        update_data = PatientGuardianUpdate(relationship="Tutor legal")
+        
+        # Intentar actualizar una relación que no existe
+        with pytest.raises(HTTPException) as excinfo:
+            PatientService.update_patient_guardian(
+                db_session, test_patient.id, test_guardian.id, update_data
+            )
+        
+        # Verificar que se lanza la excepción correcta
+        assert excinfo.value.status_code == 404
+        assert "Guardian relationship not found" in excinfo.value.detail
+    
+    def test_delete_patient_guardian(self, db_session, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la eliminación de una relación paciente-guardián."""
+        # Eliminar la relación
+        PatientService.delete_patient_guardian(db_session, test_patient.id, test_guardian.id)
+        
+        # Verificar que la relación ya no existe en la base de datos
+        relation_in_db = db_session.query(PatientGuardian).filter(
+            PatientGuardian.patient_id == test_patient.id,
+            PatientGuardian.guardian_id == test_guardian.id
+        ).first()
+        assert relation_in_db is None
+    
+    def test_delete_patient_guardian_not_found(self, db_session, test_patient, test_guardian):
+        """Prueba la eliminación de una relación paciente-guardián que no existe."""
+        # Eliminar cualquier relación existente
+        db_session.query(PatientGuardian).filter(
+            PatientGuardian.patient_id == test_patient.id,
+            PatientGuardian.guardian_id == test_guardian.id
+        ).delete()
+        db_session.commit()
+        
+        # Intentar eliminar una relación que no existe
+        with pytest.raises(HTTPException) as excinfo:
+            PatientService.delete_patient_guardian(db_session, test_patient.id, test_guardian.id)
+        
+        # Verificar que se lanza la excepción correcta
+        assert excinfo.value.status_code == 404
+        assert "Guardian relationship not found" in excinfo.value.detail

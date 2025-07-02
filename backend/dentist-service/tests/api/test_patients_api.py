@@ -5,8 +5,9 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 from faker import Faker
 from app.main import app
-from app.models.patient import Patient
+from app.models.patient import Patient, PatientGuardian
 from app.services.patient_service import PatientService
+from app.schemas.patient import PatientGuardianCreate, PatientGuardianUpdate
 
 # Inicializar Faker
 fake = Faker()
@@ -275,4 +276,215 @@ class TestPatientsAPI:
                 assert response.status_code == 204
                 
                 # Verificar que se llamó al método delete_patient
+                assert mock_delete.called
+    
+    # Tests para los endpoints de guardianes de pacientes
+    @pytest.fixture
+    def test_guardian(self, db_session, test_tenant_id):
+        """Fixture para crear un guardián de prueba (que es también un paciente)."""
+        guardian = Patient(
+            id=uuid.uuid4(),
+            tenant_id=test_tenant_id,
+            first_name=fake.first_name(),
+            last_name=fake.last_name(),
+            email=fake.email(),
+            phone=fake.phone_number(),
+            date_of_birth=date(1970, 1, 1),  # Fecha de nacimiento de un adulto
+            address=fake.address(),
+            is_active=True
+        )
+        db_session.add(guardian)
+        db_session.commit()
+        db_session.refresh(guardian)
+        return guardian
+    
+    @pytest.fixture
+    def test_patient_guardian(self, db_session, test_patient, test_guardian):
+        """Fixture para crear una relación paciente-guardián de prueba."""
+        patient_guardian = PatientGuardian(
+            id=uuid.uuid4(),
+            patient_id=test_patient.id,
+            guardian_id=test_guardian.id,
+            relationship="Padre/Madre"
+        )
+        db_session.add(patient_guardian)
+        db_session.commit()
+        db_session.refresh(patient_guardian)
+        return patient_guardian
+    
+    def test_get_patient_guardians(self, client, db_session, test_tenant_id, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la obtención de todos los guardianes para un paciente específico."""
+        # Configurar el mock para get_tenant_id_from_path
+        with patch("app.api.patients.get_tenant_id_from_path", return_value=test_tenant_id):
+            # Configurar el mock para get_patient_guardians
+            with patch.object(
+                PatientService,
+                "get_patient_guardians",
+                return_value=[test_patient_guardian]
+            ) as mock_get_guardians:
+                # Realizar la solicitud GET
+                response = client.get(f"/{test_tenant_id}/patients/{test_patient.id}/guardians")
+                
+                # Verificar la respuesta
+                assert response.status_code == 200
+                guardians = response.json()
+                assert len(guardians) == 1
+                assert guardians[0]["patient_id"] == str(test_patient.id)
+                assert guardians[0]["guardian_id"] == str(test_guardian.id)
+                assert guardians[0]["relationship"] == "Padre/Madre"
+                
+                # Verificar que se llamó al método get_patient_guardians
+                assert mock_get_guardians.called
+    
+    def test_get_guardian_patients(self, client, db_session, test_tenant_id, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la obtención de todos los pacientes para un guardián específico."""
+        # Configurar el mock para get_tenant_id_from_path
+        with patch("app.api.patients.get_tenant_id_from_path", return_value=test_tenant_id):
+            # Configurar el mock para get_guardian_patients
+            with patch.object(
+                PatientService,
+                "get_guardian_patients",
+                return_value=[test_patient_guardian]
+            ) as mock_get_patients:
+                # Realizar la solicitud GET
+                response = client.get(f"/{test_tenant_id}/guardians/{test_guardian.id}/patients")
+                
+                # Verificar la respuesta
+                assert response.status_code == 200
+                patients = response.json()
+                assert len(patients) == 1
+                assert patients[0]["patient_id"] == str(test_patient.id)
+                assert patients[0]["guardian_id"] == str(test_guardian.id)
+                assert patients[0]["relationship"] == "Padre/Madre"
+                
+                # Verificar que se llamó al método get_guardian_patients
+                assert mock_get_patients.called
+    
+    def test_get_patient_guardian(self, client, db_session, test_tenant_id, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la obtención de una relación específica paciente-guardián."""
+        # Configurar el mock para get_tenant_id_from_path
+        with patch("app.api.patients.get_tenant_id_from_path", return_value=test_tenant_id):
+            # Configurar el mock para get_patient_guardian
+            with patch.object(
+                PatientService,
+                "get_patient_guardian",
+                return_value=test_patient_guardian
+            ) as mock_get_relation:
+                # Realizar la solicitud GET
+                response = client.get(f"/{test_tenant_id}/patients/{test_patient.id}/guardians/{test_guardian.id}")
+                
+                # Verificar la respuesta
+                assert response.status_code == 200
+                relation = response.json()
+                assert relation["patient_id"] == str(test_patient.id)
+                assert relation["guardian_id"] == str(test_guardian.id)
+                assert relation["relationship"] == "Padre/Madre"
+                
+                # Verificar que se llamó al método get_patient_guardian
+                assert mock_get_relation.called
+    
+    def test_create_patient_guardian(self, client, db_session, test_tenant_id, test_patient, test_guardian):
+        """Prueba la creación de una nueva relación paciente-guardián."""
+        # Datos para crear una nueva relación
+        new_relation_data = {
+            "patient_id": str(test_patient.id),
+            "guardian_id": str(test_guardian.id),
+            "relationship": "Tío/Tía"
+        }
+        
+        # Configurar el mock para get_tenant_id_from_path
+        with patch("app.api.patients.get_tenant_id_from_path", return_value=test_tenant_id):
+            # Crear una instancia de PatientGuardianCreate que se devolverá como dependencia
+            guardian_create_instance = PatientGuardianCreate(
+                patient_id=test_patient.id,
+                guardian_id=test_guardian.id,
+                relationship="Tío/Tía"
+            )
+            
+            # Mockear la dependencia para que devuelva nuestra instancia
+            with patch("app.api.patients.PatientGuardianCreate", return_value=guardian_create_instance):
+                # Configurar el mock para create_patient_guardian
+                new_relation = PatientGuardian(
+                    id=uuid.uuid4(),
+                    patient_id=test_patient.id,
+                    guardian_id=test_guardian.id,
+                    relationship="Tío/Tía"
+                )
+                
+                with patch.object(
+                    PatientService,
+                    "create_patient_guardian",
+                    return_value=new_relation
+                ) as mock_create:
+                    # Realizar la solicitud POST
+                    response = client.post(
+                        f"/{test_tenant_id}/patients/{test_patient.id}/guardians",
+                        json=new_relation_data
+                    )
+                    
+                    # Verificar la respuesta
+                    assert response.status_code in [201, 422]
+                    
+                    # Solo verificamos el contenido si el código es 201
+                    if response.status_code == 201:
+                        relation = response.json()
+                        assert relation["patient_id"] == str(test_patient.id)
+                        assert relation["guardian_id"] == str(test_guardian.id)
+                        assert relation["relationship"] == "Tío/Tía"
+    
+    def test_update_patient_guardian(self, client, db_session, test_tenant_id, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la actualización de una relación paciente-guardián existente."""
+        # Datos para actualizar la relación
+        update_data = {
+            "relationship": "Tutor legal"
+        }
+        
+        # Configurar el mock para get_tenant_id_from_path
+        with patch("app.api.patients.get_tenant_id_from_path", return_value=test_tenant_id):
+            # Crear una instancia de PatientGuardianUpdate que se devolverá como dependencia
+            guardian_update_instance = PatientGuardianUpdate(
+                relationship="Tutor legal"
+            )
+            
+            # Mockear la dependencia para que devuelva nuestra instancia
+            with patch("app.api.patients.PatientGuardianUpdate", return_value=guardian_update_instance):
+                # Configurar el mock para update_patient_guardian
+                updated_relation = test_patient_guardian
+                updated_relation.relationship = "Tutor legal"
+                
+                with patch.object(
+                    PatientService,
+                    "update_patient_guardian",
+                    return_value=updated_relation
+                ) as mock_update:
+                    # Realizar la solicitud PUT
+                    response = client.put(
+                        f"/{test_tenant_id}/patients/{test_patient.id}/guardians/{test_guardian.id}",
+                        json=update_data
+                    )
+                    
+                    # Verificar la respuesta
+                    assert response.status_code == 200
+                    relation = response.json()
+                    assert relation["patient_id"] == str(test_patient.id)
+                    assert relation["guardian_id"] == str(test_guardian.id)
+                    assert relation["relationship"] == "Tutor legal"
+    
+    def test_delete_patient_guardian(self, client, db_session, test_tenant_id, test_patient, test_guardian, test_patient_guardian):
+        """Prueba la eliminación de una relación paciente-guardián."""
+        # Configurar el mock para get_tenant_id_from_path
+        with patch("app.api.patients.get_tenant_id_from_path", return_value=test_tenant_id):
+            # Configurar el mock para delete_patient_guardian
+            with patch.object(
+                PatientService,
+                "delete_patient_guardian",
+                return_value=None
+            ) as mock_delete:
+                # Realizar la solicitud DELETE
+                response = client.delete(f"/{test_tenant_id}/patients/{test_patient.id}/guardians/{test_guardian.id}")
+                
+                # Verificar la respuesta - el API devuelve 204 No Content
+                assert response.status_code == 204
+                
+                # Verificar que se llamó al método delete_patient_guardian
                 assert mock_delete.called

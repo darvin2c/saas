@@ -4,7 +4,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from app.database import get_db
-from app.schemas.patient import Patient, PatientCreate, PatientUpdate
+from app.schemas.patient import Patient, PatientCreate, PatientUpdate, PatientGuardian, PatientGuardianCreate, PatientGuardianUpdate
 from app.services.patient_service import PatientService
 from app.utils.auth import validate_token, get_tenant_id_from_path
 from app.filters.patient_filter import get_patient_filter, PatientFilter
@@ -127,4 +127,115 @@ def delete_patient(
     Delete a patient (soft delete).
     """
     PatientService.delete_patient(db, patient_id, tenant_id)
+    return None
+
+
+# Patient Guardian endpoints
+@router.get("/{tenant_id}/patients/{patient_id}/guardians", response_model=List[PatientGuardian])
+def get_patient_guardians(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    patient_id: UUID = Path(..., description="ID del paciente"),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Get all guardians for a specific patient.
+    """
+    # Verify that the patient exists and belongs to the tenant
+    PatientService.get_patient(db, patient_id, tenant_id)
+    return PatientService.get_patient_guardians(db, patient_id)
+
+
+@router.get("/{tenant_id}/guardians/{guardian_id}/patients", response_model=List[PatientGuardian])
+def get_guardian_patients(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    guardian_id: UUID = Path(..., description="ID del guardián"),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Get all patients for a specific guardian.
+    """
+    # Verify that the guardian exists and belongs to the tenant
+    PatientService.get_patient(db, guardian_id, tenant_id)
+    return PatientService.get_guardian_patients(db, guardian_id)
+
+
+@router.get("/{tenant_id}/patients/{patient_id}/guardians/{guardian_id}", response_model=PatientGuardian)
+def get_patient_guardian(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    patient_id: UUID = Path(..., description="ID del paciente"),
+    guardian_id: UUID = Path(..., description="ID del guardián"),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Get a specific patient-guardian relationship.
+    """
+    # Verify that both patient and guardian exist and belong to the tenant
+    PatientService.get_patient(db, patient_id, tenant_id)
+    PatientService.get_patient(db, guardian_id, tenant_id)
+    return PatientService.get_patient_guardian(db, patient_id, guardian_id)
+
+
+@router.post("/{tenant_id}/patients/{patient_id}/guardians", response_model=PatientGuardian, status_code=status.HTTP_201_CREATED)
+def create_patient_guardian(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    patient_id: UUID = Path(..., description="ID del paciente"),
+    guardian_data: PatientGuardianCreate = Depends(),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Create a new patient-guardian relationship.
+    """
+    # Verify that the patient_id in the path matches the one in the request body
+    if guardian_data.patient_id != patient_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Patient ID mismatch between URL and request body"
+        )
+    
+    # Verify that both patient and guardian exist and belong to the tenant
+    PatientService.get_patient(db, patient_id, tenant_id)
+    PatientService.get_patient(db, guardian_data.guardian_id, tenant_id)
+    
+    return PatientService.create_patient_guardian(db, guardian_data)
+
+
+@router.put("/{tenant_id}/patients/{patient_id}/guardians/{guardian_id}", response_model=PatientGuardian)
+def update_patient_guardian(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    patient_id: UUID = Path(..., description="ID del paciente"),
+    guardian_id: UUID = Path(..., description="ID del guardián"),
+    guardian_data: PatientGuardianUpdate = Depends(),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Update an existing patient-guardian relationship.
+    """
+    # Verify that both patient and guardian exist and belong to the tenant
+    PatientService.get_patient(db, patient_id, tenant_id)
+    PatientService.get_patient(db, guardian_id, tenant_id)
+    
+    return PatientService.update_patient_guardian(db, patient_id, guardian_id, guardian_data)
+
+
+@router.delete("/{tenant_id}/patients/{patient_id}/guardians/{guardian_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_patient_guardian(
+    tenant_id: UUID = Depends(get_tenant_id_from_path),
+    patient_id: UUID = Path(..., description="ID del paciente"),
+    guardian_id: UUID = Path(..., description="ID del guardián"),
+    db: Session = Depends(get_db),
+    user_data: dict = Depends(validate_token)
+):
+    """
+    Delete a patient-guardian relationship.
+    """
+    # Verify that both patient and guardian exist and belong to the tenant
+    PatientService.get_patient(db, patient_id, tenant_id)
+    PatientService.get_patient(db, guardian_id, tenant_id)
+    
+    PatientService.delete_patient_guardian(db, patient_id, guardian_id)
     return None
